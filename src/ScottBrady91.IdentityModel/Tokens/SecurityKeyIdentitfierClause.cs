@@ -1,5 +1,4 @@
 ﻿using System;
-using Microsoft.IdentityModel.Tokens;
 
 namespace ScottBrady91.IdentityModel.Tokens
 {

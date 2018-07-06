@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.27703.2026
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{B89FC2D5-55FD-4C6D-AB70-E15EFCAA8E8C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScottBrady91.IdentityModel.Metadata", "src\ScottBrady91.IdentityModel.Metadata\ScottBrady91.IdentityModel.Metadata.csproj", "{9F91FEB9-4B41-4E0E-9F0F-5532213F9980}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScottBrady91.IdentityModel", "src\ScottBrady91.IdentityModel\ScottBrady91.IdentityModel.csproj", "{9F91FEB9-4B41-4E0E-9F0F-5532213F9980}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
