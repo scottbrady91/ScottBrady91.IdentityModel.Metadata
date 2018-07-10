@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Sustainsys.Saml2.Metadata
+namespace ScottBrady91.IdentityModel.Metadata
 {
     /// <summary>
     /// Specifies an attribute requested by the service provider.

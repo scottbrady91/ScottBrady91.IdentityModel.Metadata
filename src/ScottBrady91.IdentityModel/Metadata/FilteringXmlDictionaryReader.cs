@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 
-namespace Sustainsys.Saml2.Metadata
+namespace ScottBrady91.IdentityModel.Metadata
 {
     class FilteringXmlDictionaryReader : DelegatingXmlDictionaryReader
     {

@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
-using Sustainsys.Saml2.Tokens;
+using ScottBrady91.IdentityModel.Tokens;
 using Microsoft.IdentityModel.Xml;
 
-namespace Sustainsys.Saml2.Metadata
+namespace ScottBrady91.IdentityModel.Metadata
 {
 	public class KeyDescriptor
 	{

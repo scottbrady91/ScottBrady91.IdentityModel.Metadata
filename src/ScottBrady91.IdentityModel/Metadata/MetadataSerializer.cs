@@ -1,6 +1,6 @@
 ﻿using Microsoft.IdentityModel.Tokens.Saml2;
 using Microsoft.IdentityModel.Xml;
-using Sustainsys.Saml2.Tokens;
+using ScottBrady91.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -10,10 +10,10 @@ using System.Numerics;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Xml;
-using Sustainsys.Saml2.Selectors;
+using ScottBrady91.IdentityModel.Selectors;
 using SigningCredentials = Microsoft.IdentityModel.Tokens.SigningCredentials;
 
-namespace Sustainsys.Saml2.Metadata
+namespace ScottBrady91.IdentityModel.Metadata
 {
 	public class MetadataSerializationException : Exception
 	{

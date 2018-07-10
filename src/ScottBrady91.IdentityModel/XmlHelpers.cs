@@ -1,6 +1,6 @@
 ﻿using System.Xml;
 
-namespace Sustainsys.Saml2
+namespace ScottBrady91.IdentityModel
 {
     public class XmlHelpers
     {

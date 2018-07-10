@@ -1,31 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Text;
 
-namespace Sustainsys.Saml2.Metadata
+namespace ScottBrady91.IdentityModel.Metadata
 {
 	public abstract class WebServiceDescriptor : RoleDescriptor
 	{
-		public bool? AutomaticPseudonyms { get; set; }
-		public ICollection<Uri> ClaimDialectsOffered { get; private set; } =
-			new Collection<Uri>();
-		public ICollection<DisplayClaim> ClaimTypesOffered { get; private set; } =
-			new Collection<DisplayClaim>();
-		public ICollection<DisplayClaim> ClaimTypesRequested { get; private set; } =
-			new Collection<DisplayClaim>();
-		public ICollection<Uri> LogicalServiceNamesOffered { get; private set; } =
-			new Collection<Uri>();
-		public string ServiceDescription { get; set; }
-		public string ServiceDisplayName { get; set; }
-		public ICollection<EndpointReference> TargetScopes { get; private set; } =
-			new Collection<EndpointReference>();
-		public ICollection<Uri> TokenTypesOffered { get; private set; } =
-			new Collection<Uri>();
+	    public ICollection<DisplayClaim> ClaimTypesOffered { get; } = new Collection<DisplayClaim>();
+	    public ICollection<DisplayClaim> ClaimTypesRequested { get; } = new Collection<DisplayClaim>();
+	    public string ServiceDescription { get; set; }
+	    public string ServiceDisplayName { get; set; }
+        public ICollection<EndpointReference> TargetScopes { get; } = new Collection<EndpointReference>();
+	    public ICollection<Uri> TokenTypesOffered { get; } = new Collection<Uri>();
 
-		protected WebServiceDescriptor()
-		{
-		}
+        // TODO: WebServiceDescriptor extensions??? (localization)
+        public bool? AutomaticPseudonyms { get; set; }
+		public ICollection<Uri> ClaimDialectsOffered { get; } = new Collection<Uri>();
+		public ICollection<Uri> LogicalServiceNamesOffered { get; } = new Collection<Uri>();
+		
+		protected WebServiceDescriptor() { }
 	}
 
 }

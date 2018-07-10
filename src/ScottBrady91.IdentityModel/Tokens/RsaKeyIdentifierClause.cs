@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.Xml;
 using System.Xml;
 
-namespace Sustainsys.Saml2.Tokens
+namespace ScottBrady91.IdentityModel.Tokens
 {
 	public class RsaSecurityKey : AsymmetricSecurityKey
 	{

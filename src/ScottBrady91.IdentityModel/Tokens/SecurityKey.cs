@@ -1,4 +1,4 @@
-﻿namespace Sustainsys.Saml2.Tokens
+﻿namespace ScottBrady91.IdentityModel.Tokens
 {
 	public abstract class SecurityKey
 	{

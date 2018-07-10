@@ -1,31 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Text;
-using System.Security.Claims;
 
-namespace Sustainsys.Saml2.Metadata
+namespace ScottBrady91.IdentityModel.Metadata
 {
 	public class ApplicationServiceDescriptor : WebServiceDescriptor
 	{
-		public ICollection<EndpointReference> Endpoints { get; private set; } =
-			new List<EndpointReference>();
-		public ICollection<EndpointReference> PassiveRequestorEndpoints { get; private set; } =
-			new List<EndpointReference>();
-		public ICollection<EndpointReference> SingleSignOutEndpoints { get; private set; } =
-			new List<EndpointReference>();
+		public ICollection<EndpointReference> Endpoints { get; } = new Collection<EndpointReference>();
+		public ICollection<EndpointReference> PassiveRequestorEndpoints { get; } = new Collection<EndpointReference>();
 
-		public ApplicationServiceDescriptor()
-		{
-		}
+        // TODO: ApplicationServiceDescriptor SingleSignOutEndpoints
+        public ICollection<EndpointReference> SingleSignOutEndpoints { get; } = new Collection<EndpointReference>();
 
-		public ApplicationServiceDescriptor(
-			IEnumerable<EndpointReference> endpoints,
-			IEnumerable<EndpointReference> passiveRequestorEndpoints,
-			IEnumerable<EndpointReference> singleSignOutEndpoints
-		)
-		{
-			((List<EndpointReference>)Endpoints).AddRange(endpoints);
-		}
+		public ApplicationServiceDescriptor() { }
 	}
 }

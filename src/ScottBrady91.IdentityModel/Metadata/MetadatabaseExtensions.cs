@@ -6,7 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Web;
 using System.Xml;
 
-namespace Sustainsys.Saml2.Metadata
+namespace ScottBrady91.IdentityModel.Metadata
 {
     /// <summary>
     /// Extensions for Metadatabase.

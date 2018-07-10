@@ -5,9 +5,9 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Xml;
-using Sustainsys.Saml2.Tokens;
+using ScottBrady91.IdentityModel.Tokens;
 
-namespace Sustainsys.Saml2.Metadata
+namespace ScottBrady91.IdentityModel.Metadata
 {
 	public abstract class KeyData
 	{

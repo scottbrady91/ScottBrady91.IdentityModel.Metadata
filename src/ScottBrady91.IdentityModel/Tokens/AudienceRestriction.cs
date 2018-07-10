@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
 
-namespace Sustainsys.Saml2.Tokens
+namespace ScottBrady91.IdentityModel.Tokens
 {
 	public enum AudienceUriMode
 	{

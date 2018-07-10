@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Sustainsys.Saml2.Tokens
+namespace ScottBrady91.IdentityModel.Tokens
 {
     public class KeyNameIdentifierClause : SecurityKeyIdentifierClause
     {

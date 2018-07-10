@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Xml;
-using Sustainsys.Saml2.Selectors;
-using Sustainsys.Saml2.Tokens;
+using ScottBrady91.IdentityModel.Selectors;
+using ScottBrady91.IdentityModel.Tokens;
 
 using SecurityToken = Microsoft.IdentityModel.Tokens.SecurityToken;
 
-namespace Sustainsys.Saml2.Metadata
+namespace ScottBrady91.IdentityModel.Metadata
 {
 	public abstract class SecurityTokenSerializer
 	{

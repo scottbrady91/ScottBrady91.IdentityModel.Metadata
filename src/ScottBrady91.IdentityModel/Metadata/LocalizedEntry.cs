@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Globalization;
 
-namespace Sustainsys.Saml2.Metadata
+namespace ScottBrady91.IdentityModel.Metadata
 {
     public abstract class LocalizedEntry
     {

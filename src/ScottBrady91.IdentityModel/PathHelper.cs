@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace Sustainsys.Saml2
+namespace ScottBrady91.IdentityModel
 {
     public class PathHelper
     {

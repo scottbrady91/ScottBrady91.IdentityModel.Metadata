@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Security.Cryptography;
 
-namespace Sustainsys.Saml2.Tokens
+namespace ScottBrady91.IdentityModel.Tokens
 {
 	static class EcUtils
 	{

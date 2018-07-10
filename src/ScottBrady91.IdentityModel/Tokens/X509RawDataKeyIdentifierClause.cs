@@ -4,7 +4,7 @@ using System.Text;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Sustainsys.Saml2.Tokens
+namespace ScottBrady91.IdentityModel.Tokens
 {
 	public class X509RawDataKeyIdentifierClause : BinaryKeyIdentifierClause
     {

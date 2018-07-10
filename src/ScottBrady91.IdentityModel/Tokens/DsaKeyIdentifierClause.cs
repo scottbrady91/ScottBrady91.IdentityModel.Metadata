@@ -3,7 +3,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.Xml;
 
-namespace Sustainsys.Saml2.Tokens
+namespace ScottBrady91.IdentityModel.Tokens
 {
 	public class DsaSecurityKey : AsymmetricSecurityKey
 	{

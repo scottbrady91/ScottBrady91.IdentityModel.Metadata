@@ -2,7 +2,7 @@
 using System.Collections.ObjectModel;
 using System.Security.Cryptography.X509Certificates;
 
-namespace Sustainsys.Saml2.Tokens
+namespace ScottBrady91.IdentityModel.Tokens
 {
 	public abstract class SecurityToken
 	{

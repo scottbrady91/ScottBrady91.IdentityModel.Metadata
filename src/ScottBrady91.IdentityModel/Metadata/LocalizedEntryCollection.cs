@@ -1,7 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.Globalization;
 
-namespace Sustainsys.Saml2.Metadata
+namespace ScottBrady91.IdentityModel.Metadata
 {
     public class LocalizedEntryCollection<T> : KeyedCollection<string, T> where T : LocalizedEntry
     {

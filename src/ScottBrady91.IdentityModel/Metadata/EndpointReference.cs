@@ -2,7 +2,7 @@
 using System.Collections.ObjectModel;
 using System.Xml;
 
-namespace Sustainsys.Saml2.Metadata
+namespace ScottBrady91.IdentityModel.Metadata
 {
 	public class ServiceName
 	{

@@ -1,6 +1,6 @@
-﻿using Sustainsys.Saml2.Tokens;
+﻿using ScottBrady91.IdentityModel.Tokens;
 
-namespace Sustainsys.Saml2.Selectors
+namespace ScottBrady91.IdentityModel.Selectors
 {
     public class NullSecurityTokenResolver : SecurityTokenResolver
     {

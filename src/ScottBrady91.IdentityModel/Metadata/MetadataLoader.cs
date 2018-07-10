@@ -10,9 +10,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
-using Sustainsys.Saml2.Tokens;
+using ScottBrady91.IdentityModel.Tokens;
 
-namespace Sustainsys.Saml2.Metadata
+namespace ScottBrady91.IdentityModel.Metadata
 {
     /// <summary>
     /// Helper for loading SAML2 metadata
