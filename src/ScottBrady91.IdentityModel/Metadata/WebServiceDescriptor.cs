@@ -17,8 +17,5 @@ namespace ScottBrady91.IdentityModel.Metadata
         public bool? AutomaticPseudonyms { get; set; }
 		public ICollection<Uri> ClaimDialectsOffered { get; } = new Collection<Uri>();
 		public ICollection<Uri> LogicalServiceNamesOffered { get; } = new Collection<Uri>();
-		
-		protected WebServiceDescriptor() { }
 	}
-
 }

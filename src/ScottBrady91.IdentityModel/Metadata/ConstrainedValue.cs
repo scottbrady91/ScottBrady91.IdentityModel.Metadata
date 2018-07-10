@@ -4,7 +4,8 @@ using System.Xml;
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
-	public class ClaimValue
+    // TODO: ClaimValue & ConstrainedValue
+    public class ClaimValue
 	{
 		public string Value { get; set; }
 		public ICollection<XmlElement> StructuredValue { get; set; }

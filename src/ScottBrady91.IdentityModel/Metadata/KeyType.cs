@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ScottBrady91.IdentityModel.Metadata
+﻿namespace ScottBrady91.IdentityModel.Metadata
 {
 	public enum KeyType
 	{

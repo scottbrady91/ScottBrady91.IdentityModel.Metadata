@@ -7,28 +7,22 @@ namespace ScottBrady91.IdentityModel.Metadata
 {
     public class EntityDescriptor : MetadataBase
     {
-		public string Id { get; set; }
-		public ICollection<ContactPerson> Contacts { get; private set; } =
-			new Collection<ContactPerson>();
-		public EntityId EntityId { get; set; }
-		public string FederationId { get; set; }
-		public Organization Organization { get; set; }
-		public ICollection<RoleDescriptor> RoleDescriptors { get; private set; } =
-			new Collection<RoleDescriptor>();
-		public DateTime? ValidUntil { get; set; }
-		public ICollection<AdditionalMetadataLocation> AdditionalMetadataLocations { get; private set; } =
-			new Collection<AdditionalMetadataLocation>();
-		public Collection<XmlElement> Extensions { get; private set; } =
-			new Collection<XmlElement>();
+        public EntityId EntityId { get; set; }
+        public ICollection<RoleDescriptor> RoleDescriptors { get; } = new Collection<RoleDescriptor>();
+        public ICollection<ContactPerson> Contacts { get; } = new Collection<ContactPerson>();
+        public Organization Organization { get; set; }
+        public string FederationId { get; set; }
 
-		public EntityDescriptor(EntityId entityId)
+        // TODO: EntityDescriptor extension
+        public string Id { get; set; }
+		public DateTime? ValidUntil { get; set; }
+		public ICollection<AdditionalMetadataLocation> AdditionalMetadataLocations { get; } = new Collection<AdditionalMetadataLocation>();
+		public ICollection<XmlElement> Extensions { get; } = new Collection<XmlElement>();
+
+        public EntityDescriptor() { }
+        public EntityDescriptor(EntityId entityId)
 		{
 			EntityId = entityId;
-		}
-
-		public EntityDescriptor() :
-			this(null)
-		{
 		}
 	}
 }

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Globalization;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Globalization;
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
@@ -9,14 +6,11 @@ namespace ScottBrady91.IdentityModel.Metadata
     {
 		public string Name { get; set; }
 
-		public LocalizedName(string name, string language) :
-			base(language)
+        public LocalizedName() { }
+        public LocalizedName(string name, CultureInfo language) : base(language)
 		{
 			Name = name;
 		}
 
-		public LocalizedName()
-		{
-		}
     }
 }

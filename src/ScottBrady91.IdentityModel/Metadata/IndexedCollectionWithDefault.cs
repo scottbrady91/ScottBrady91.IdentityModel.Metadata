@@ -4,10 +4,12 @@ using System.Text;
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
-	/// <summary>
-	/// An indexed entry with an optional default
-	/// </summary>
-	public interface IIndexedEntryWithDefault
+    // TODO: IIndexedEntryWithDefault vs IndexedProtocolEndpoint
+
+    /// <summary>
+    /// An indexed entry with an optional default
+    /// </summary>
+    public interface IIndexedEntryWithDefault
 	{
 		/// <summary>
 		/// Index of the endpoint

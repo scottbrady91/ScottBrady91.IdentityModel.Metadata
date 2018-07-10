@@ -7,14 +7,25 @@ namespace ScottBrady91.IdentityModel.Metadata
 {
     public class EntitiesDescriptor : MetadataBase
     {
-		public ICollection<EntityDescriptor> ChildEntities { get; private set; } =
-			new Collection<EntityDescriptor>();
-		public ICollection<EntitiesDescriptor> ChildEntityGroups { get; private set; } =
-			new Collection<EntitiesDescriptor>();
-		public Collection<XmlElement> Extensions { get; private set; } =
-			new Collection<XmlElement>();
-		public string Id { get; set; }
-		public string Name { get; set; }
+        public string Name { get; set; }
+        public ICollection<EntityDescriptor> ChildEntities { get; } = new Collection<EntityDescriptor>();
+		public ICollection<EntitiesDescriptor> ChildEntityGroups { get; } = new Collection<EntitiesDescriptor>();
+
+        // TODO EntitiesDescriptor extensions
+        public ICollection<XmlElement> Extensions { get; } = new Collection<XmlElement>();
+        public string Id { get; set; }
 		public DateTime? ValidUntil { get; set; }
+
+        public EntitiesDescriptor() { }
+
+        public EntitiesDescriptor(ICollection<EntityDescriptor> entityList)
+        {
+            ChildEntities = entityList;
+        }
+
+        public EntitiesDescriptor(ICollection<EntitiesDescriptor> entityGroupList)
+        {
+            ChildEntityGroups = entityGroupList;
+        }
     }
 }

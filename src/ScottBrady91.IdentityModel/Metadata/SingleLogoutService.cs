@@ -2,7 +2,8 @@
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
-	public class SingleLogoutService : Endpoint
+    // TODO: SingleLogoutService
+    public class SingleLogoutService : ProtocolEndpoint
 	{
 		public SingleLogoutService()
 		{

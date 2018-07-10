@@ -1,14 +1,13 @@
-﻿using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Xml;
-
+﻿
 namespace ScottBrady91.IdentityModel.Metadata
 {
-	public class DiscoveryResponse : IndexedEndpoint
+    // TODO: DiscoveryResponse
+    public class DiscoveryResponse : IndexedEndpoint
 	{
 	}
 
-	public class SpSsoDescriptor : SsoDescriptor
+    // TODO: SingleSignOnDescriptor2
+    public class SingleSignOnDescriptor2 : SingleSignOnDescriptor
 	{
 		public IndexedCollectionWithDefault<AssertionConsumerService> AssertionConsumerServices { get; private set; } =
 			new IndexedCollectionWithDefault<AssertionConsumerService>();

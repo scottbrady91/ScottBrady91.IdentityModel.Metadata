@@ -1,6 +1,6 @@
 ﻿namespace ScottBrady91.IdentityModel.Metadata
 {
-	public class PassiveRequestorEndpoint : Endpoint
+	public class PassiveRequestorEndpoint : ProtocolEndpoint
 	{
 	}
 }

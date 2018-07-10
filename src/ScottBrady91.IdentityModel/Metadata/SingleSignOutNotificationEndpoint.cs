@@ -1,6 +1,6 @@
 ﻿namespace ScottBrady91.IdentityModel.Metadata
 {
-	public class SingleSignOutNotificationEndpoint : Endpoint
+	public class SingleSignOutNotificationEndpoint : ProtocolEndpoint
 	{
 	}
 }

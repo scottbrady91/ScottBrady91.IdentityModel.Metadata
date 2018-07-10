@@ -8,6 +8,7 @@ using System.Xml;
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
+    // TODO: FilteringXmlDictionaryReader remove
     class FilteringXmlDictionaryReader : DelegatingXmlDictionaryReader
     {
         string xmlNamespaceUri, name;
@@ -34,27 +35,6 @@ namespace ScottBrady91.IdentityModel.Metadata
             return result;
         }
 
-		// Sigh.  ASPNET core bug.
-		// XmlReader:
-		// public void Dispose()
-		// {
-		//     Dispose(true);
-		// }
-		// protected virtual void Dispose(bool disposing)
-		// {
-		//     if (disposing && ReadState != ReadState.Closed)
-		//     {
-		//         Close();
-		//     }
-		// }
-		//
-		// XmlDictionaryReader:
-		// public override void Close()
-		// {
-		// 	base.Dispose();
-		// }
-		// = stack overflow
-		//
 		public override void Close()
 		{
 		}

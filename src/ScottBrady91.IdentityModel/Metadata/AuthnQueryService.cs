@@ -1,6 +1,6 @@
 ﻿namespace ScottBrady91.IdentityModel.Metadata
 {
-	public class AuthnQueryService : Endpoint
+	public class AuthnQueryService : ProtocolEndpoint
 	{
 	}
 }

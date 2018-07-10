@@ -7,15 +7,10 @@ namespace ScottBrady91.IdentityModel.Metadata
 	{
 		public Uri Uri { get; set; }
 
-		public LocalizedUri(Uri uri, string language) :
-			base(language)
+	    public LocalizedUri() { }
+        public LocalizedUri(Uri uri, CultureInfo language) : base(language)
 		{
 			Uri = uri;
-		}
-
-		public LocalizedUri() :
-			this(null, null)
-		{
 		}
 	}
 }

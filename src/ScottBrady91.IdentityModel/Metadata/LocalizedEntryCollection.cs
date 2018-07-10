@@ -3,9 +3,9 @@ using System.Globalization;
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
-    public class LocalizedEntryCollection<T> : KeyedCollection<string, T> where T : LocalizedEntry
+    public class LocalizedEntryCollection<T> : KeyedCollection<CultureInfo, T> where T : LocalizedEntry
     {
-		protected override string GetKeyForItem(T item)
+		protected override CultureInfo GetKeyForItem(T item)
 		{
 			return item.Language;
 		}

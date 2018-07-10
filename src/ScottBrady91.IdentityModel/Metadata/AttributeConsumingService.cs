@@ -1,16 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
-	/// <summary>
-	/// Metadata for an attribute consuming service.
-	/// </summary>
-	public class AttributeConsumingService : IIndexedEntryWithDefault
+    // TODO: AttributeConsumingService
+
+    /// <summary>
+    /// Metadata for an attribute consuming service.
+    /// </summary>
+    public class AttributeConsumingService : IIndexedEntryWithDefault
 	{
 		/// <summary>
 		/// Index of the endpoint

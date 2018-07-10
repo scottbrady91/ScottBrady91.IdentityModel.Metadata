@@ -4,16 +4,30 @@ namespace ScottBrady91.IdentityModel.Metadata
 {
     public class EntityId
     {
-		public string Id { get; set; }
+        private const int MaximumLength = 1024;
+        private string id;
 
-		public EntityId(string id)
+        public string Id
+        {
+            get => id;
+            set
+            {
+                if (value != null)
+                {
+                    if (MaximumLength < value.Length)
+                    {
+                        throw new ArgumentException($"Id length must be less than {MaximumLength}", nameof(Id));
+                    }
+                }
+
+                id = value;
+            }
+        }
+
+        public EntityId() { }
+        public EntityId(string id)
 		{
 			Id = id;
-		}
-
-		public EntityId() :
-			this(null)
-		{
 		}
 	}
 }

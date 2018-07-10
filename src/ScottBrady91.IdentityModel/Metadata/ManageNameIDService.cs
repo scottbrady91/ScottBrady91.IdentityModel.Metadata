@@ -1,6 +1,6 @@
 ﻿namespace ScottBrady91.IdentityModel.Metadata
 {
-	public class ManageNameIDService : Endpoint
+	public class ManageNameIDService : ProtocolEndpoint
 	{
 	}
 }

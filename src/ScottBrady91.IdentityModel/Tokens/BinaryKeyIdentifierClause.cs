@@ -5,33 +5,22 @@ namespace ScottBrady91.IdentityModel.Tokens
 {
 	public abstract class BinaryKeyIdentifierClause : SecurityKeyIdentifierClause
 	{
-		private byte[] identificationData;
-		private bool cloneBuffer;
+		private readonly byte[] identificationData;
+		private readonly bool cloneBuffer;
 
-		protected BinaryKeyIdentifierClause(
-			string clauseType,
-			byte[] identificationData,
-			bool cloneBuffer,
-			byte[] derivationNonce,
-			int derivationLength) :
-			base(clauseType, derivationNonce, derivationLength)
+		protected BinaryKeyIdentifierClause(string clauseType, byte[] identificationData, bool cloneBuffer, byte[] derivationNonce = null, int derivationLength = 0) 
+		    : base(clauseType, derivationNonce, derivationLength)
 		{
-			if (identificationData == null)
-			{
-				throw new ArgumentNullException(nameof(identificationData));
-			}
-			this.cloneBuffer = cloneBuffer;
+		    if (identificationData == null) throw new ArgumentNullException(nameof(identificationData));
+		    if (identificationData.Length == 0) throw new ArgumentException("Value cannot be an empty collection.", nameof(identificationData));
+            
+		    this.cloneBuffer = cloneBuffer;
 			this.identificationData = cloneBuffer ? identificationData.CloneByteArray() : identificationData;
 		}
 
-		protected BinaryKeyIdentifierClause(string clauseType, byte[] identificationData, bool cloneBuffer) :
-			this(clauseType, identificationData, cloneBuffer, null, 0)
+	    public byte[] GetBuffer()
 		{
-		}
-
-		public byte[] GetBuffer()
-		{
-			return identificationData.CloneByteArray();
+			return identificationData.CloneByteArray(); // TODO
 		}
 
 		public byte[] GetRawBuffer()

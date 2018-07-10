@@ -1,6 +1,6 @@
 ﻿namespace ScottBrady91.IdentityModel.Metadata
 {
-    public class AttributeService : Endpoint
+    public class AttributeService : ProtocolEndpoint
     {
     }
 }

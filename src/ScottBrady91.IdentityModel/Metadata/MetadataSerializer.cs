@@ -146,8 +146,8 @@ namespace ScottBrady91.IdentityModel.Metadata
 		protected virtual EncryptionMethod CreateEncryptionMethodInstance() =>
 			new EncryptionMethod();
 
-		protected virtual Endpoint CreateEndpointInstance() =>
-			new Endpoint();
+		protected virtual ProtocolEndpoint CreateEndpointInstance() =>
+			new ProtocolEndpoint();
 
 		protected virtual EntitiesDescriptor CreateEntitiesDescriptorInstance() =>
 			new EntitiesDescriptor();
@@ -155,8 +155,8 @@ namespace ScottBrady91.IdentityModel.Metadata
 		protected virtual EntityDescriptor CreateEntityDescriptorInstance() =>
 			new EntityDescriptor();
 
-		protected virtual IdpSsoDescriptor CreateIdpSsoDescriptorInstance() =>
-			new IdpSsoDescriptor();
+		protected virtual IdentityProviderSingleSignOnDescriptor CreateIdpSsoDescriptorInstance() =>
+			new IdentityProviderSingleSignOnDescriptor();
 
 		protected virtual KeyDescriptor CreateKeyDescriptorInstance() =>
 			new KeyDescriptor();
@@ -203,8 +203,8 @@ namespace ScottBrady91.IdentityModel.Metadata
 		protected virtual SingleSignOnService CreateSingleSignOnServiceInstance() =>
 			new SingleSignOnService();
 
-		protected virtual SpSsoDescriptor CreateSpSsoDescriptorInstance() =>
-			new SpSsoDescriptor();
+		protected virtual SingleSignOnDescriptor2 CreateSpSsoDescriptorInstance() =>
+			new SingleSignOnDescriptor2();
 
 		protected virtual XEncEncryptionMethod CreateXEncEncryptionMethodInstance() =>
 			new XEncEncryptionMethod();
@@ -2019,7 +2019,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 		// <element name="NameIDMappingService" type="md:EndpointType"/>
 		// <element name="AssertionIDRequestService" type="md:EndpointType"/>
 		// <element name="AttributeProfile" type="anyURI"/>
-		protected virtual IdpSsoDescriptor ReadIdpSsoDescriptor(XmlReader reader)
+		protected virtual IdentityProviderSingleSignOnDescriptor ReadIdpSsoDescriptor(XmlReader reader)
 		{
 			if (reader == null)
 			{
@@ -2583,7 +2583,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 		//    </complexContent>
 		//  </complexType>
 		//  <element name="AssertionConsumerService" type="md:IndexedEndpoint"/>
-		protected virtual SpSsoDescriptor ReadSpSsoDescriptor(XmlReader reader)
+		protected virtual SingleSignOnDescriptor2 ReadSpSsoDescriptor(XmlReader reader)
 		{
 			if (reader == null)
 			{
@@ -2661,13 +2661,13 @@ namespace ScottBrady91.IdentityModel.Metadata
 		// <element name="SingleLogoutService" type="md:EndpointType"/>
 		// <element name="ManageNameIDService" type="md:EndpointType"/>
 		// <element name="NameIDFormat" type="anyURI"/>
-		protected virtual void ReadSsoDescriptorAttributes(XmlReader reader, SsoDescriptor descriptor)
+		protected virtual void ReadSsoDescriptorAttributes(XmlReader reader, SingleSignOnDescriptor descriptor)
 		{
 			ReadRoleDescriptorAttributes(reader, descriptor);
 			ReadCustomAttributes(reader, descriptor);
 		}
 
-		protected virtual bool ReadSsoDescriptorElement(XmlReader reader, SsoDescriptor descriptor)
+		protected virtual bool ReadSsoDescriptorElement(XmlReader reader, SingleSignOnDescriptor descriptor)
 		{
 			if (reader.IsStartElement("ArtifactResolutionService", Saml2MetadataNs))
 			{
@@ -2702,7 +2702,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 			return !String.IsNullOrEmpty(sv) ? MakeUri(sv) : def;
 		}
 
-		protected virtual void ReadEndpointAttributes(XmlReader reader, Endpoint endpoint)
+		protected virtual void ReadEndpointAttributes(XmlReader reader, ProtocolEndpoint endpoint)
 		{
 			endpoint.Binding = GetUriAttribute(reader, "Binding", endpoint.Binding);
 			if (endpoint.Binding == null)
@@ -2738,7 +2738,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 		//  <attribute name="ResponseLocation" type="anyURI" use="optional"/>
 		//  <anyAttribute namespace="##other" processContents="lax"/>
 		// </complexType>
-		T ReadWrappedEndpoint<T>(XmlReader reader, Func<T> createInstance) where T : Endpoint
+		T ReadWrappedEndpoint<T>(XmlReader reader, Func<T> createInstance) where T : ProtocolEndpoint
 		{
 			var endpoint = createInstance();
 			ReadEndpointAttributes(reader, endpoint);
@@ -2747,7 +2747,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 			return endpoint;
 		}
 
-		protected virtual Endpoint ReadEndpoint(XmlReader reader) =>
+		protected virtual ProtocolEndpoint ReadEndpoint(XmlReader reader) =>
 			ReadWrappedEndpoint(reader, CreateEndpointInstance);
 
 		protected virtual AttributeService ReadAttributeService(XmlReader reader) =>
@@ -2995,7 +2995,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 				}
 				else if (reader.IsStartElement("NameIDFormat", Saml2MetadataNs))
 				{
-					descriptor.NameIDFormats.Add(ReadNameIDFormat(reader));
+					descriptor.NameIdFormats.Add(ReadNameIDFormat(reader));
 				}
 				else if (reader.IsStartElement("AttributeProfile", Saml2MetadataNs))
 				{
@@ -3574,7 +3574,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 		{
 		}
 
-		protected virtual void WriteEndpointAttributes(XmlWriter writer, Endpoint endpoint)
+		protected virtual void WriteEndpointAttributes(XmlWriter writer, ProtocolEndpoint endpoint)
 		{
 			writer.WriteAttributeString("Binding", endpoint.Binding.ToString());
 			writer.WriteAttributeString("Location", endpoint.Location.ToString());
@@ -3582,7 +3582,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 			WriteCustomAttributes(writer, endpoint);
 		}
 
-		protected virtual void WriteEndpoint(XmlWriter writer, Endpoint endpoint,
+		protected virtual void WriteEndpoint(XmlWriter writer, ProtocolEndpoint endpoint,
 			string name, string ns)
 		{
 			if (writer == null)
@@ -3637,7 +3637,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 		}
 
 		protected virtual void WriteEndpoints(XmlWriter writer,
-			IEnumerable<Endpoint> endpoints, string name, string ns) =>
+			IEnumerable<ProtocolEndpoint> endpoints, string name, string ns) =>
 				WriteCollection(writer, endpoints, (writer_, endpoint) =>
 					WriteEndpoint(writer_, endpoint, name, ns));
 
@@ -4492,7 +4492,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 				WriteEndpoint(writer, ars, "AssertionIDRequestService", Saml2MetadataNs);
 			}
 
-			foreach (var nameIDFormat in descriptor.NameIDFormats)
+			foreach (var nameIDFormat in descriptor.NameIdFormats)
 			{
 				WriteNameIDFormat(writer, nameIDFormat);
 			}
@@ -4600,11 +4600,11 @@ namespace ScottBrady91.IdentityModel.Metadata
 				{
 					WriteSecurityTokenServiceDescriptor(writer, secDescriptor);
 				}
-				else if (roleDescriptor is IdpSsoDescriptor idpSsoDescriptor)
+				else if (roleDescriptor is IdentityProviderSingleSignOnDescriptor idpSsoDescriptor)
 				{
 					WriteIdpSsoDescriptor(writer, idpSsoDescriptor);
 				}
-				else if (roleDescriptor is SpSsoDescriptor spSsoDescriptor)
+				else if (roleDescriptor is SingleSignOnDescriptor2 spSsoDescriptor)
 				{
 					WriteSpSsoDescriptor(writer, spSsoDescriptor);
 				}
@@ -4637,7 +4637,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 			writer.WriteEndElement();
 		}
 
-		protected virtual void WriteIdpSsoDescriptor(XmlWriter writer, IdpSsoDescriptor descriptor)
+		protected virtual void WriteIdpSsoDescriptor(XmlWriter writer, IdentityProviderSingleSignOnDescriptor descriptor)
 		{
 			if (writer == null)
 			{
@@ -5014,7 +5014,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 			writer.WriteEndElement();
 		}
 
-		protected virtual void WriteSpSsoDescriptor(XmlWriter writer, SpSsoDescriptor descriptor)
+		protected virtual void WriteSpSsoDescriptor(XmlWriter writer, SingleSignOnDescriptor2 descriptor)
 		{
 			if (writer == null)
 			{
@@ -5052,7 +5052,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 			writer.WriteEndElement();
 		}
 
-		protected virtual void WriteSsoDescriptorAttributes(XmlWriter writer, SsoDescriptor descriptor)
+		protected virtual void WriteSsoDescriptorAttributes(XmlWriter writer, SingleSignOnDescriptor descriptor)
 		{
 			if (writer == null)
 			{
@@ -5066,7 +5066,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 			WriteCustomAttributes(writer, descriptor);
 		}
 
-		void WriteSsoDescriptorElements(XmlWriter writer, SsoDescriptor descriptor, bool writeExtensions)
+		void WriteSsoDescriptorElements(XmlWriter writer, SingleSignOnDescriptor descriptor, bool writeExtensions)
 		{
 			WriteRoleDescriptorElements(writer, descriptor, writeExtensions);
 			WriteIndexedEndpoints(writer, descriptor.ArtifactResolutionServices.Values,
@@ -5079,7 +5079,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 			WriteCustomElements(writer, descriptor);
 		}
 
-		protected virtual void WriteSsoDescriptorElements(XmlWriter writer, SsoDescriptor descriptor)
+		protected virtual void WriteSsoDescriptorElements(XmlWriter writer, SingleSignOnDescriptor descriptor)
 		{
 			if (writer == null)
 			{

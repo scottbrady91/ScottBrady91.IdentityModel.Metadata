@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Xml;
 
@@ -7,13 +6,11 @@ namespace ScottBrady91.IdentityModel.Metadata
 {
     public class Organization
     {
-		public ICollection<XmlElement> Extensions { get; private set; } =
-			new Collection<XmlElement>();
-		public LocalizedEntryCollection<LocalizedName> DisplayNames { get; private set; } =
-			new LocalizedEntryCollection<LocalizedName>();
-		public LocalizedEntryCollection<LocalizedName> Names { get; private set; } =
-			new LocalizedEntryCollection<LocalizedName>();
-		public LocalizedEntryCollection<LocalizedUri> Urls { get; private set; } =
-			new LocalizedEntryCollection<LocalizedUri>();
+		public LocalizedEntryCollection<LocalizedName> DisplayNames { get; } = new LocalizedEntryCollection<LocalizedName>();
+		public LocalizedEntryCollection<LocalizedName> Names { get; } = new LocalizedEntryCollection<LocalizedName>();
+		public LocalizedEntryCollection<LocalizedUri> Urls { get; } = new LocalizedEntryCollection<LocalizedUri>();
+
+        // TODO: Organization extensions
+        public ICollection<XmlElement> Extensions { get; } = new Collection<XmlElement>();
     }
 }

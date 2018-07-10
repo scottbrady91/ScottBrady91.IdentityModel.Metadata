@@ -6,21 +6,17 @@ namespace ScottBrady91.IdentityModel.Metadata
 {
     public class ContactPerson
     {
-		public string Company { get; set; }
-		public ICollection<string> EmailAddresses { get; private set; } =
-			new Collection<string>();
+        public ContactType Type { get; set; }
+        public string Company { get; set; }
 		public string GivenName { get; set; }
 		public string Surname { get; set; }
-		public ICollection<string> TelephoneNumbers { get; private set; } =
-			new Collection<string>();
-		public ContactType Type { get; set; }
-		public ICollection<XmlElement> Extensions { get; private set; } =
-			new Collection<XmlElement>();
+        public ICollection<string> EmailAddresses { get; } = new Collection<string>();
+        public ICollection<string> TelephoneNumbers { get; } = new Collection<string>();
 
-		public ContactPerson()
-		{
-		}
+        // TODO: ContactPerson Extensions
+		public ICollection<XmlElement> Extensions { get; } = new Collection<XmlElement>();
 
+		public ContactPerson() { }
 		public ContactPerson(ContactType type)
 		{
 			Type = type;

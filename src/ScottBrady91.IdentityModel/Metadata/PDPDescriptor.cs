@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
+    // TODO: PDPDescriptor
     public class PDPDescriptor : RoleDescriptor
     {
 		public ICollection<AuthzService> AuthzServices { get; private set; } =

@@ -2,7 +2,8 @@
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
-	public class EncryptionProperty
+    // TODO: EncryptionProperty
+    public class EncryptionProperty
 	{
 		public string Id { get; set; }
 		public Uri Target { get; set; }

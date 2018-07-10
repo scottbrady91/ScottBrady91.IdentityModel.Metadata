@@ -6,6 +6,7 @@ using System.Text;
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
+    // TODO: RequestedAttribute
     /// <summary>
     /// Specifies an attribute requested by the service provider.
     /// </summary>

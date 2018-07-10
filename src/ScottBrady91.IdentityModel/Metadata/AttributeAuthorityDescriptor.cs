@@ -1,32 +1,16 @@
 ﻿using Microsoft.IdentityModel.Tokens.Saml2;
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Text;
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
-#if FALSE
-	public class SamlAttribute
+    // TODO: AttributeAuthorityDescriptor???
+    public class AttributeAuthorityDescriptor : RoleDescriptor
 	{
-		public string Name { get; set; }
-		public Uri NameFormat { get; set; }
-		public string FriendlyName { get; set; }
-		public string Value { get; set; }
-	}
-#endif
-
-	public class AttributeAuthorityDescriptor : RoleDescriptor
-	{
-		public ICollection<AttributeService> AttributeServices { get; private set; } =
-			new Collection<AttributeService>();
-		public ICollection<AssertionIdRequestService> AssertionIdRequestServices { get; private set; } =
-			new Collection<AssertionIdRequestService>();
-		public ICollection<NameIDFormat> NameIDFormats { get; private set; } =
-			new Collection<NameIDFormat>();
-		public ICollection<AttributeProfile> AttributeProfiles { get; private set; } =
-			new Collection<AttributeProfile>();
-		public ICollection<Saml2Attribute> Attributes { get; private set; } =
-			new Collection<Saml2Attribute>();
+		public ICollection<AttributeService> AttributeServices { get; } = new Collection<AttributeService>();
+		public ICollection<AssertionIdRequestService> AssertionIdRequestServices { get; } = new Collection<AssertionIdRequestService>();
+		public ICollection<NameIDFormat> NameIdFormats { get; } = new Collection<NameIDFormat>();
+		public ICollection<AttributeProfile> AttributeProfiles { get; } = new Collection<AttributeProfile>();
+		public ICollection<Saml2Attribute> Attributes { get; } = new Collection<Saml2Attribute>();
 	}
 }

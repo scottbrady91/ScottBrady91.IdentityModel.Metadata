@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
+    // TODO: ContactTypeHelpers
     public static class ContactTypeHelpers
     {
 		public static ContactType Parse(string contactType)

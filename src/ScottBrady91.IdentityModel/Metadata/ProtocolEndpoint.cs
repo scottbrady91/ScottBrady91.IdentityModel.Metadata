@@ -2,17 +2,14 @@
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
-	public class Endpoint
-	{
+	public class ProtocolEndpoint
+    {
 		public Uri Binding { get; set; }
 		public Uri Location { get; set; }
 		public Uri ResponseLocation { get; set; }
 
-		public Endpoint()
-		{
-		}
-
-		public Endpoint(Uri binding, Uri location)
+		public ProtocolEndpoint() { }
+		public ProtocolEndpoint(Uri binding, Uri location)
 		{
 			Binding = binding;
 			Location = location;

@@ -1,19 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Text;
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
     public class SecurityTokenServiceDescriptor : WebServiceDescriptor
     {
-		public Collection<EndpointReference> SecurityTokenServiceEndpoints { get; private set; } =
-			new Collection<EndpointReference>();
-		public Collection<EndpointReference> SingleSignOutSubscriptionEndpoints { get; private set; } =
-			new Collection<EndpointReference>();
-		public Collection<EndpointReference> SingleSignOutNotificationEndpoints { get; private set; } =
-			new Collection<EndpointReference>();
-		public Collection<EndpointReference> PassiveRequestorEndpoints { get; private set; } =
-			new Collection<EndpointReference>();
+		public ICollection<EndpointReference> SecurityTokenServiceEndpoints { get; } = new Collection<EndpointReference>();
+        public ICollection<EndpointReference> PassiveRequestorEndpoints { get; } = new Collection<EndpointReference>();
+
+        // TODO: SecurityTokenServiceDescriptor extensions
+        public ICollection<EndpointReference> SingleSignOutSubscriptionEndpoints { get; } = new Collection<EndpointReference>();
+		public ICollection<EndpointReference> SingleSignOutNotificationEndpoints { get; } = new Collection<EndpointReference>();
 	}
 }

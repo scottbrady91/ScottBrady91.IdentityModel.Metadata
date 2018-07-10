@@ -3,7 +3,8 @@ using System.Collections.ObjectModel;
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
-	public class EncryptionProperties
+    // TODO: EncryptionProperties
+    public class EncryptionProperties
 	{
 		// EncryptionProperty
 		public string Id { get; set; }

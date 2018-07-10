@@ -2,7 +2,8 @@
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
-	public class NameIDFormat
+    // TODO: NameIDFormat
+    public class NameIDFormat
 	{
 		public Uri Uri { get; set; }
 	}
