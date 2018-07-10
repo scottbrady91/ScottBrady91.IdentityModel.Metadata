@@ -1,27 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Xml;
 
-namespace ScottBrady91.IdentityModel.Metadata
+namespace Sustainsys.Saml2.Metadata
 {
     public abstract class RoleDescriptor
     {
-        protected RoleDescriptor() : this(new Collection<Uri>()) { }
-        protected RoleDescriptor(ICollection<Uri> protocolsSupported)
-        {
-            ProtocolsSupported = protocolsSupported;
-        }
+		public ICollection<ContactPerson> Contacts { get; private set; }
+			= new Collection<ContactPerson>();
+		public ICollection<Uri> ProtocolsSupported { get; private set; }
+		public Uri ErrorUrl { get; set; }
+		public string Id { get; set; }
+		public ICollection<KeyDescriptor> Keys { get; private set; }
+			= new Collection<KeyDescriptor>();
+		public Organization Organization { get; set; }
+		public DateTime? ValidUntil { get; set; }
+		public ICollection<XmlElement> Extensions { get; private set; } =
+			new Collection<XmlElement>();
 
-        public string Id { get; set; }
-        public ICollection<KeyDescriptor> Keys { get; } = new Collection<KeyDescriptor>();
-        public ICollection<Uri> ProtocolsSupported { get; }
-        public Uri ErrorUrl { get; set; }
-        public Organization Organization { get; set; }
-        public ICollection<ContactPerson> Contacts { get; } = new Collection<ContactPerson>();
+		protected RoleDescriptor() :
+			this(new Collection<Uri>())
+		{
+		}
 
-        public DateTime? ValidUntil { get; set; }
-
-        //public XsdDuration? CacheDuration { get; set; }
-        //public ICollection<XmlElement> Extensions { get; private set; } = new Collection<XmlElement>();
+		protected RoleDescriptor(Collection<Uri> protocolsSupported)
+		{
+			ProtocolsSupported = protocolsSupported;
+		}
     }
 }

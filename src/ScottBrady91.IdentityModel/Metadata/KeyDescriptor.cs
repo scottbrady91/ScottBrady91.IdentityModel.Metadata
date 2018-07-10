@@ -1,17 +1,21 @@
-﻿using ScottBrady91.IdentityModel.Tokens;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Security.Cryptography.Xml;
+using System.Text;
+using Sustainsys.Saml2.Tokens;
+using Microsoft.IdentityModel.Xml;
 
-namespace ScottBrady91.IdentityModel.Metadata
+namespace Sustainsys.Saml2.Metadata
 {
-    public class KeyDescriptor
-    {
-        public KeyDescriptor() { }
-        public KeyDescriptor(SecurityKeyIdentifier keyInfo) { KeyInfo = keyInfo; }
+	public class KeyDescriptor
+	{
+		public DSigKeyInfo KeyInfo { get; set; }
+		public KeyType Use { get; set; } = KeyType.Unspecified;
+		public ICollection<EncryptionMethod> EncryptionMethods { get; private set; } =
+			new Collection<EncryptionMethod>();
 
-        public SecurityKeyIdentifier KeyInfo { get; set; }
-        public KeyType Use { get; set; } = KeyType.Unspecified;
-        public ICollection<EncryptionMethod> EncryptionMethods { get; } = new Collection<EncryptionMethod>();
-    }
+		public KeyDescriptor()
+		{
+		}
+	}
 }
