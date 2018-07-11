@@ -4,32 +4,20 @@ namespace ScottBrady91.IdentityModel.Tokens
 {
     public class KeyNameIdentifierClause : SecurityKeyIdentifierClause
     {
-		public KeyNameIdentifierClause(string keyName) :
-			base(null)
+        public string KeyName { get; }
+
+        public KeyNameIdentifierClause(string keyName) : base(null)
 		{
 			KeyName = keyName;
 		}
 
-		public string KeyName { get; private set; }
-
 		public override bool Matches(SecurityKeyIdentifierClause keyIdentifierClause)
 		{
-			if (keyIdentifierClause == null)
-			{
-				throw new ArgumentNullException(nameof(keyIdentifierClause));
-			}
-			return keyIdentifierClause is KeyNameIdentifierClause otherClause &&
-				Matches(otherClause.KeyName);
+			if (keyIdentifierClause == null) throw new ArgumentNullException(nameof(keyIdentifierClause));
+			return keyIdentifierClause is KeyNameIdentifierClause otherClause && Matches(otherClause.KeyName);
 		}
 
-		public bool Matches(string keyName)
-		{
-			return KeyName == keyName;
-		}
-
-		public override string ToString()
-		{
-			return $"KeyNameIdentifierClause(KeyName = '{KeyName}')";
-		}
-	}
+		public bool Matches(string keyName) => KeyName == keyName;
+        public override string ToString() => $"KeyNameIdentifierClause(KeyName = '{KeyName}')";
+    }
 }

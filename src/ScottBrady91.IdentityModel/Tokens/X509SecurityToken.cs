@@ -1,64 +1,118 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Security.Cryptography.X509Certificates;
 
 namespace ScottBrady91.IdentityModel.Tokens
 {
-	public abstract class SecurityToken
-	{
-		protected SecurityToken()
-		{
-		}
-
-		public abstract DateTime ValidFrom { get; }
-		public abstract DateTime ValidTo { get; }
-		public abstract string Id { get; }
-		public abstract ReadOnlyCollection<SecurityKey> SecurityKeys { get; }
-
-		public virtual bool CanCreateKeyIdentifierClause<T>() where T : SecurityKeyIdentifierClause
-		{
-			throw new NotImplementedException();
-		}
-
-		public virtual T CreateKeyIdentifierClause<T>() where T : SecurityKeyIdentifierClause
-		{
-			throw new NotImplementedException();
-		}
-
-		public virtual bool MatchesKeyIdentifierClause(SecurityKeyIdentifierClause keyIdentifierClause)
-		{
-			return false;
-		}
-
-		public virtual SecurityKey ResolveKeyIdentifierClause(
-			SecurityKeyIdentifierClause keyIdentifierClause)
-		{
-			if (keyIdentifierClause == null)
-			{
-				throw new ArgumentNullException(nameof(keyIdentifierClause));
-			}
-			if (!MatchesKeyIdentifierClause(keyIdentifierClause))
-			{
-				throw new InvalidOperationException($"This '{GetType()}' security token does not support resolving '{keyIdentifierClause}' key identifier clause.");
-			}
-			if (keyIdentifierClause.CanCreateKey)
-			{
-				return keyIdentifierClause.CreateKey();
-			}
-			// FIXME: examine it.
-			if (SecurityKeys.Count == 0)
-			{
-				throw new InvalidOperationException($"This '{GetType()}' security token does not have any keys that can be resolved.");
-			}
-			return SecurityKeys[0];
-		}
-	}
-
 	public class X509SecurityToken : SecurityToken, IDisposable
 	{
-		X509Certificate2 certificate;
+	    public override string Id { get; }
 
-		public X509Certificate2 Certificate
+        private ReadOnlyCollection<SecurityKey> keys;
+        private X509Certificate2 certificate;
+	    private bool disposed = false;
+	    private bool disposable;
+
+        public X509SecurityToken(X509Certificate2 certificate)
+	        : this(certificate, SecurityUniqueId.Create().Value)
+	    {
+	    }
+
+	    public X509SecurityToken(X509Certificate2 certificate, string id)
+	        : this(certificate, id, true)
+	    {
+	    }
+
+	    internal X509SecurityToken(X509Certificate2 certificate, bool clone)
+	        : this(certificate, SecurityUniqueId.Create().Value, clone)
+	    {
+	    }
+
+	    internal X509SecurityToken(X509Certificate2 certificate, bool clone, bool disposable)
+	        : this(certificate, SecurityUniqueId.Create().Value, clone, disposable)
+	    {
+	    }
+
+	    internal X509SecurityToken(X509Certificate2 certificate, string id, bool clone)
+	        : this(certificate, id, clone, true)
+	    {
+	    }
+
+	    internal X509SecurityToken(X509Certificate2 certificate, string id, bool clone, bool disposable)
+	    {
+	        if (certificate == null) throw new ArgumentNullException(nameof(certificate));
+
+	        Id = id ?? throw new ArgumentNullException(nameof(id));
+	        this.certificate = clone ? new X509Certificate2(certificate) : certificate;
+	        this.disposable = clone || disposable;
+	    }
+
+	    public override ReadOnlyCollection<SecurityKey> SecurityKeys
+	    {
+	        get
+	        {
+	            CheckDisposed();
+
+	            if (keys == null) keys = new ReadOnlyCollection<SecurityKey>(new List<SecurityKey> {new X509AsymmetricSecurityKey(Certificate)}.AsReadOnly());
+	            return keys;
+	        }
+	    }
+
+	    public override DateTime ValidFrom
+	    {
+	        get
+	        {
+	            CheckDisposed();
+	            /*if (this.effectiveTime == SecurityUtils.MaxUtcDateTime)
+	                this.effectiveTime = this.certificate.NotBefore.ToUniversalTime();
+	            return this.effectiveTime;*/
+
+                return Certificate.NotBefore.ToUniversalTime();
+	        }
+	    }
+
+	    public override DateTime ValidTo
+	    {
+	        get
+	        {
+	            CheckDisposed();
+	            /*if (this.expirationTime == SecurityUtils.MinUtcDateTime)
+	                this.expirationTime = this.certificate.NotAfter.ToUniversalTime();*/
+
+                return Certificate.NotAfter.ToUniversalTime();
+	        }
+	    }
+
+	    public override bool CanCreateKeyIdentifierClause<T>()
+	    {
+	        CheckDisposed();
+
+	        var t = typeof(T);
+	        return t == typeof(X509RawDataKeyIdentifierClause)
+	               || t == typeof(X509IssuerSerialKeyIdentifierClause)
+	               // || t == typeof(X509ThumbprintKeyIdentifierClause);
+	               || base.CanCreateKeyIdentifierClause<T>();
+	    }
+
+	    public override T CreateKeyIdentifierClause<T>()
+	    {
+	        CheckDisposed();
+
+	        Type t = typeof(T);
+	        if (t == typeof(X509RawDataKeyIdentifierClause))
+	        {
+	            return (T)(object)new X509RawDataKeyIdentifierClause(certificate);
+	        }
+	        if (t == typeof(X509IssuerSerialKeyIdentifierClause))
+	        {
+	            return (T)(object)new X509IssuerSerialKeyIdentifierClause(certificate);
+	        }
+	        throw new NotSupportedException($"A key identifier of type {t} could not be created");
+	    }
+
+
+        public X509Certificate2 Certificate
 		{
 			get
 			{
@@ -67,40 +121,7 @@ namespace ScottBrady91.IdentityModel.Tokens
 			}
 		}
 
-		string id;
-		public override string Id
-		{
-			get
-			{
-				CheckDisposed();
-				return id;
-			}
-		}
-
-		public X509SecurityToken(X509Certificate2 certificate, string id)
-		{
-			if (certificate == null)
-			{
-				throw new ArgumentNullException(nameof(certificate));
-			}
-			if (String.IsNullOrEmpty(id))
-			{
-				throw new ArgumentNullException(nameof(id));
-			}
-			this.id = id;
-			this.certificate = certificate;
-		}
-
-		public X509SecurityToken(X509Certificate2 certificate)
-		{
-			if (certificate == null)
-			{
-				throw new ArgumentNullException(nameof(certificate));
-			}
-			this.certificate = certificate;
-			this.id = certificate.IssuerName.Name + certificate.SerialNumber;
-		}
-
+        
 		void CheckDisposed()
 		{
 			if (certificate == null)
@@ -109,23 +130,7 @@ namespace ScottBrady91.IdentityModel.Tokens
 			}
 		}
 
-		public override DateTime ValidFrom
-		{
-			get
-			{
-				CheckDisposed();
-				return Certificate.NotBefore.ToUniversalTime();
-			}
-		}
 
-		public override DateTime ValidTo
-		{
-			get
-			{
-				CheckDisposed();
-				return Certificate.NotAfter.ToUniversalTime();
-			}
-		}
 
 		public virtual void Dispose()
 		{
@@ -135,46 +140,9 @@ namespace ScottBrady91.IdentityModel.Tokens
 			certificate = null;
 		}
 
-		ReadOnlyCollection<SecurityKey> keys;
-		public override ReadOnlyCollection<SecurityKey> SecurityKeys
-		{
-			get
-			{
-				CheckDisposed();
+		
 
-				if (keys == null)
-				{
-					keys = new ReadOnlyCollection<SecurityKey>(new SecurityKey[] { new X509AsymmetricSecurityKey(Certificate) });
-				}
-				return keys;
-			}
-		}
 
-		public override bool CanCreateKeyIdentifierClause<T>()
-		{
-			CheckDisposed();
-
-			Type t = typeof(T);
-			return t == typeof(X509RawDataKeyIdentifierClause) ||
-				   t == typeof(X509IssuerSerialKeyIdentifierClause);
-			// X509SubjectKeyIdentifierClause, X509ThumbprintKeyIdentifierClause
-		}
-
-		public override T CreateKeyIdentifierClause<T>()
-		{
-			CheckDisposed();
-
-			Type t = typeof(T);
-			if (t == typeof(X509RawDataKeyIdentifierClause))
-			{
-				return (T)(object)new X509RawDataKeyIdentifierClause(certificate);
-			}
-			if (t == typeof(X509IssuerSerialKeyIdentifierClause))
-			{
-				return (T)(object)new X509IssuerSerialKeyIdentifierClause(certificate);
-			}
-			throw new NotSupportedException($"A key identifier of type {t} could not be created");
-		}
 
 		public override bool MatchesKeyIdentifierClause(SecurityKeyIdentifierClause keyIdentifierClause)
 		{

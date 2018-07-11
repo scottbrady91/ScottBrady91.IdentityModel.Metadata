@@ -5,41 +5,22 @@ namespace ScottBrady91.IdentityModel.Tokens
 {
     public abstract class SecurityKeyIdentifierClause
     {
-		public string ClauseType { get; private set; }
-		public string Id { get; private set; }
-		public int DerivationLength { get; private set; }
-		private byte[] derivationNonce;
+        private readonly byte[] derivationNonce;
+        
+        public string Id { get; set; }
+        public string ClauseType { get; }
+		public int DerivationLength { get; }
 
-		public byte[] GetDerivationNonce()
-		{
-			return derivationNonce?.CloneByteArray();
-		}
+        protected SecurityKeyIdentifierClause(string clauseType, byte[] nonce = null, int length = 0)
+        {
+            ClauseType = clauseType;
+            DerivationLength = length;
+            derivationNonce = nonce;
+        }
 
-		public virtual bool CanCreateKey
-		{
-			get { return false; }
-		}
-
-		public virtual SecurityKey CreateKey()
-		{
-			throw new NotSupportedException("SecurityKeyIdentifierClause does not support key creation");
-		}
-
-		public virtual bool Matches(SecurityKeyIdentifierClause keyIdentifierClause)
-		{
-			return ReferenceEquals(this, keyIdentifierClause);
-		}
-
-		protected SecurityKeyIdentifierClause(string clauseType, byte[] nonce, int length)
-		{
-			ClauseType = clauseType;
-			DerivationLength = length;
-			derivationNonce = nonce;
-		}
-		
-		protected SecurityKeyIdentifierClause(string clauseType) :
-			this(clauseType, null, 0)
-		{
-		}
+        public byte[] GetDerivationNonce() => derivationNonce?.CloneByteArray();
+        public virtual bool CanCreateKey => false;
+        public virtual SecurityKey CreateKey() => throw new NotSupportedException("SecurityKeyIdentifierClause does not support key creation");
+        public virtual bool Matches(SecurityKeyIdentifierClause keyIdentifierClause) => ReferenceEquals(this, keyIdentifierClause);
 	}
 }

@@ -8,9 +8,22 @@ namespace ScottBrady91.IdentityModel.Tokens
 {
 	public class SecurityKeyIdentifier : IEnumerable<SecurityKeyIdentifierClause>
 	{
-		readonly List<SecurityKeyIdentifierClause> clauses;
+        private readonly List<SecurityKeyIdentifierClause> clauses;
 
-		public void Add(SecurityKeyIdentifierClause clause)
+	    public SecurityKeyIdentifier()
+	    {
+	        clauses = new List<SecurityKeyIdentifierClause>();
+	    }
+
+	    public SecurityKeyIdentifier(params SecurityKeyIdentifierClause[] clauses)
+	    {
+	        if (clauses == null) throw new ArgumentNullException(nameof(clauses));
+	        
+	        this.clauses = new List<SecurityKeyIdentifierClause>(clauses.Length);
+	        foreach (var clause in clauses) Add(clause);
+	    }
+
+        public void Add(SecurityKeyIdentifierClause clause)
 		{
 			if (IsReadOnly)
 			{
@@ -23,52 +36,34 @@ namespace ScottBrady91.IdentityModel.Tokens
 			clauses.Add(clause);
 		}
 
-		public bool CanCreateKey
-		{
-			get => clauses.Exists(clause => clause.CanCreateKey);
-		}
+        public int Count => clauses.Count;
 
-		public int Count
-		{
-			get => clauses.Count;
-		}
-
-		public SecurityKeyIdentifierClause this[int index]
+	    public SecurityKeyIdentifierClause this[int index]
 		{
 			get
 			{
-				if (index < 0 || index >= clauses.Count)
-				{
-					throw new ArgumentOutOfRangeException("Invalid index");
-				}
+				if (index < 0 || index >= clauses.Count) throw new ArgumentOutOfRangeException(nameof(index));
 				return clauses[index];
 			}
 		}
 
-		public IEnumerator<SecurityKeyIdentifierClause> GetEnumerator()
-		{
-			return clauses.GetEnumerator();
-		}
+		public IEnumerator<SecurityKeyIdentifierClause> GetEnumerator() => clauses.GetEnumerator();
 
-		IEnumerator IEnumerable.GetEnumerator()
-		{
-			return clauses.GetEnumerator();
-		}
+        IEnumerator IEnumerable.GetEnumerator() => clauses.GetEnumerator();
 
-		public bool IsReadOnly { get; private set; }
+	    public bool IsReadOnly { get; private set; }
 
-		public void MakeReadOnly()
+        public void MakeReadOnly()
 		{
 			IsReadOnly = true;
 		}
 
-		public SecurityKey CreateKey()
+	    public bool CanCreateKey => clauses.Exists(clause => clause.CanCreateKey);
+
+        public SecurityKey CreateKey()
 		{
 			var clause = clauses.FirstOrDefault(x => x.CanCreateKey);
-			if (clause == null)
-			{
-				throw new NotSupportedException("SecurityKeyIdentifier does not support key creation");
-			}
+			if (clause == null) throw new NotSupportedException("SecurityKeyIdentifier does not support key creation");
 			return clause.CreateKey();
 		}
 
@@ -80,11 +75,8 @@ namespace ScottBrady91.IdentityModel.Tokens
 
 		public TClause Find<TClause>() where TClause : SecurityKeyIdentifierClause
 		{
-			TClause clause;
-			if (!TryFind(out clause))
-			{
-				throw new InvalidOperationException($"A clause of type ${typeof(TClause).Name} could not be found");
-			}
+		    if (!TryFind(out TClause clause)) throw new InvalidOperationException($"A clause of type ${typeof(TClause).Name} could not be found");
+			
 			return clause;
 		}
 
@@ -97,7 +89,7 @@ namespace ScottBrady91.IdentityModel.Tokens
 			sb.Append(Count);
 
 			sb.Append(", Clauses = [");
-			for (int i = 0; i < clauses.Count; ++i)
+            for (var i = 0; i < clauses.Count; ++i)
 			{
 				if (i != 0)
 				{
@@ -108,24 +100,6 @@ namespace ScottBrady91.IdentityModel.Tokens
 			sb.Append("])");
 
 			return sb.ToString();
-		}
-
-		public SecurityKeyIdentifier()
-		{
-			clauses = new List<SecurityKeyIdentifierClause>();
-		}
-
-		public SecurityKeyIdentifier(params SecurityKeyIdentifierClause[] clauses)
-		{
-			if (clauses == null)
-			{
-				throw new ArgumentNullException(nameof(clauses));
-			}
-			this.clauses = new List<SecurityKeyIdentifierClause>(clauses.Length);
-			foreach (var clause in clauses)
-			{
-				Add(clause);
-			}
 		}
 	}
 }

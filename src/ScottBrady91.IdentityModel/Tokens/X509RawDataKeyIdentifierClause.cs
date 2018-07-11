@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Security.Cryptography.X509Certificates;
-using Microsoft.IdentityModel.Tokens;
 
 namespace ScottBrady91.IdentityModel.Tokens
 {
@@ -10,33 +7,37 @@ namespace ScottBrady91.IdentityModel.Tokens
     {
 		private X509Certificate2 certificate;
 
-		public X509RawDataKeyIdentifierClause(byte[] certificateRawData) :
-			base(null, certificateRawData, true)
-		{
-		}
+        public X509RawDataKeyIdentifierClause(X509Certificate2 certificate)
+            : this(GetRawData(certificate), false)
+        {
+            this.certificate = certificate;
+        }
 
-		public X509RawDataKeyIdentifierClause(X509Certificate2 certificate) :
-			base(null, certificate.RawData, true)
-		{
-			if (certificate == null)
-			{
-				throw new ArgumentNullException(nameof(certificate));
-			}
-			this.certificate = certificate;
-		}
+        public X509RawDataKeyIdentifierClause(byte[] certificateRawData)
+            : this(certificateRawData, true)
+        {
+        }
 
-		public override bool CanCreateKey => true;
-		
-		public override SecurityKey CreateKey()
-		{
-			if (certificate == null)
-			{
-				certificate = new X509Certificate2(GetX509RawData());
-			}
-			return new X509AsymmetricSecurityKey(certificate);
-		}
+        internal X509RawDataKeyIdentifierClause(byte[] certificateRawData, bool cloneBuffer)
+            : base(null, certificateRawData, cloneBuffer)
+        {
+        }
 
-		public byte[] GetX509RawData()
+        public override bool CanCreateKey => true;
+
+        public override SecurityKey CreateKey()
+        {
+            if (certificate == null) certificate = new X509Certificate2(GetX509RawData());
+            return new X509AsymmetricSecurityKey(certificate);
+        }
+
+        private static byte[] GetRawData(X509Certificate certificate)
+        {
+            if (certificate == null) throw new ArgumentNullException(nameof(certificate));
+            return certificate.GetRawCertData();
+        }
+
+        public byte[] GetX509RawData()
 		{
 			return GetRawBuffer();
 		}
@@ -45,5 +46,5 @@ namespace ScottBrady91.IdentityModel.Tokens
 		{
 			return Matches(otherCert.RawData);
 		}
-	}
+    }
 }
