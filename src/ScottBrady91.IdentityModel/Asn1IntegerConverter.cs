@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 namespace ScottBrady91.IdentityModel
@@ -175,7 +176,7 @@ namespace ScottBrady91.IdentityModel
                     }
                 }
             }
-            DiagnosticUtility.DebugAssert(borrow == 0, "");
+            Debug.Assert(borrow == 0, "");
         }
     }
 }

@@ -4,6 +4,7 @@ using ScottBrady91.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -2143,7 +2144,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 			{
 				throw new MetadataSerializationException("localized element without xml:lang attribute");
 			}
-			entry.Language = lang;
+			entry.Language = CultureInfo.GetCultureInfo(lang);
 			ReadCustomAttributes(reader, entry);
 
 			string value = ReadTrimmedString(reader);
@@ -4736,7 +4737,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 			}
 
 			writer.WriteStartElement(elName, ns);
-			writer.WriteAttributeString("xml", "lang", XmlNs, name.Language);
+			writer.WriteAttributeString("xml", "lang", XmlNs, name.Language.Name);
 			WriteCustomAttributes(writer, name);
 			writer.WriteString(name.Name);
 			WriteCustomElements(writer, name);
@@ -4769,7 +4770,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 			}
 
 			writer.WriteStartElement(name, ns);
-			writer.WriteAttributeString("xml", "lang", XmlNs, uri.Language);
+			writer.WriteAttributeString("xml", "lang", XmlNs, uri.Language.Name);
 			WriteCustomAttributes(writer, name);
 			writer.WriteString(uri.Uri.ToString());
 			WriteCustomElements(writer, name);

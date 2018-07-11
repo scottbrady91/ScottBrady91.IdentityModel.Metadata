@@ -8,7 +8,7 @@ namespace ScottBrady91.IdentityModel.Metadata
     public class EndpointReference
 	{
 	    public ICollection<XmlElement> Details { get; } = new Collection<XmlElement>();
-	    public Uri Uri { get; }
+	    public Uri Uri { get; set; }
 
         // TODO: EndpointReference extensions
         public ICollection<XmlElement> Metadata { get; } = new Collection<XmlElement>();
