@@ -16,4 +16,10 @@
     <ProjectReference Include="..\..\src\ScottBrady91.IdentityModel\ScottBrady91.IdentityModel.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="idsrv3test.pfx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

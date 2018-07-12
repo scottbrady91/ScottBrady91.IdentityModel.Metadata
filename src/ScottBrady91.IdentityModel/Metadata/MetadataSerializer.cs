@@ -16,19 +16,6 @@ using SigningCredentials = Microsoft.IdentityModel.Tokens.SigningCredentials;
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
-	public class MetadataSerializationException : Exception
-	{
-		public MetadataSerializationException(string message) :
-			base(message)
-		{
-		}
-
-		public MetadataSerializationException(string message, Exception innerException) :
-			base(message, innerException)
-		{
-		}
-	}
-
 	public class MetadataSerializer
 	{
 		const string XmlNs = "http://www.w3.org/XML/1998/namespace";
@@ -47,17 +34,11 @@ namespace ScottBrady91.IdentityModel.Metadata
 
 		public SecurityTokenSerializer SecurityTokenSerializer { get; private set; }
 
-		public MetadataSerializer(SecurityTokenSerializer serializer)
-		{
-			if (serializer == null)
-			{
-				throw new ArgumentNullException(nameof(serializer));
-			}
-			SecurityTokenSerializer = serializer;
-		}
+	    public MetadataSerializer() : this(new KeyInfoSerializer(true)) { }
 
-		public MetadataSerializer()
+        public MetadataSerializer(SecurityTokenSerializer serializer)
 		{
+		    SecurityTokenSerializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
 		}
 
 		string GetAttribute(XmlReader reader, string att, string def)
@@ -2109,8 +2090,10 @@ namespace ScottBrady91.IdentityModel.Metadata
 			{
 				if (reader.IsStartElement("KeyInfo", DSigNs))
 				{
-					descriptor.KeyInfo = ReadDSigKeyInfo(reader);
-					// descriptor.KeyIdentifier = MakeSecurityKeyIdentifier(descriptor.KeyInfo);
+				    descriptor.KeyInfo = SecurityTokenSerializer.ReadKeyIdentifier(reader);
+
+				    //descriptor.KeyInfo = ReadDSigKeyInfo(reader);
+				    //descriptor.KeyIdentifier = MakeSecurityKeyIdentifier(descriptor.KeyInfo);
 				}
 				else if (reader.IsStartElement("EncryptionMethod", Saml2MetadataNs))
 				{
@@ -4705,12 +4688,11 @@ namespace ScottBrady91.IdentityModel.Metadata
 			}
 			WriteCustomAttributes(writer, keyDescriptor);
 
-			if (keyDescriptor.KeyInfo != null)
-			{
-				WriteDSigKeyInfo(writer, keyDescriptor.KeyInfo);
-			}
+			if (keyDescriptor.KeyInfo == null) throw new MetadataSerializationException("Null key info");
 
-			WriteCollection(writer, keyDescriptor.EncryptionMethods, WriteEncryptionMethod);
+		    SecurityTokenSerializer.WriteKeyIdentifier(writer, keyDescriptor.KeyInfo);
+
+            WriteCollection(writer, keyDescriptor.EncryptionMethods, WriteEncryptionMethod);
 
 			WriteCustomElements(writer, keyDescriptor);
 			writer.WriteEndElement();
