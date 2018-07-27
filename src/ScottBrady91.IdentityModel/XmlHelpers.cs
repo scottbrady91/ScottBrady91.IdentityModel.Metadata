@@ -18,13 +18,18 @@ namespace ScottBrady91.IdentityModel
                 writer.WriteElementString(prefix, elementName, elementNamespace, value);
         }
 
+        public static void WriteElementIfPresent(this XmlWriter writer, string elementName, string elementNamespace, byte[] value)
+        {
+            if (value != null)
+                writer.WriteElementString(elementName, elementNamespace, Convert.ToBase64String(value));
+        }
+
         // Attribute helpers
         public static void WriteAttributeIfPresent(this XmlWriter writer, string attributeName, string attributeNamespace, bool? value)
         {
             if (value.HasValue)
-            {
                 writer.WriteAttributeString(attributeName, attributeNamespace, XmlConvert.ToString(value.Value));
-            }
+            
         }
 
         public static void WriteAttributeIfPresent(this XmlWriter writer, string attributeName, string attributeNamespace, string value)

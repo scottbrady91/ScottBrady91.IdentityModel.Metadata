@@ -1,7 +1,6 @@
 ﻿using Microsoft.IdentityModel.Tokens.Saml2;
 using Microsoft.IdentityModel.Xml;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -16,10 +15,6 @@ namespace ScottBrady91.IdentityModel.Metadata
 	public class MetadataSerializer
 	{
 		private const string LanguageNamespaceUri = "http://www.w3.org/XML/1998/namespace";
-		private const string AuthNs = "http://docs.oasis-open.org/wsfed/authorization/200706";
-		private const string XEncNs = "http://www.w3.org/2001/04/xmlenc#";
-		private const string DSigNs = "http://www.w3.org/2000/09/xmldsig#";
-		private const string DSig11Ns = "http://www.w3.org/2009/xmldsig11#";
 
 		public SecurityTokenSerializer SecurityTokenSerializer { get; }
 
@@ -321,9 +316,10 @@ namespace ScottBrady91.IdentityModel.Metadata
 
 	        if (keyDescriptor.KeyInfo == null) throw new MetadataSerializationException("Null key info");
 
-	        SecurityTokenSerializer.WriteKeyIdentifier(writer, keyDescriptor.KeyInfo);
+            // SecurityTokenSerializer.WriteKeyIdentifier(writer, keyDescriptor.KeyInfo);
+	        // WriteDSigKeyInfo(writer, keyDescriptor.KeyInfo);
 
-	        if (keyDescriptor.EncryptionMethods?.Any() == true)
+            if (keyDescriptor.EncryptionMethods?.Any() == true)
 	        {
 	            foreach (var encryptionMethod in keyDescriptor.EncryptionMethods)
 	            {
@@ -706,519 +702,156 @@ namespace ScottBrady91.IdentityModel.Metadata
 	        writer.WriteEndElement();
 	    }
 
+	    private const string XEncNamespace = "http://www.w3.org/2001/04/xmlenc#";
+        private const string DSigNamespace = "http://www.w3.org/2000/09/xmldsig#";
+	    private const string DSig11Namespace = "http://www.w3.org/2009/xmldsig11#";
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-		static void WriteBase64Element(XmlWriter writer, string elName, string elNs, byte[] value)
-		{
-			if (value != null)
-			{
-				writer.WriteElementString(elName, elNs, Convert.ToBase64String(value));
-			}
-		}
-
-	    private static void WriteStringAttributeIfPresent(XmlWriter writer, string attName, string attNs, string value)
-		{
-			if (!IsNullOrEmpty(value)) writer.WriteAttributeString(attName, attNs, value);
-		}
-
-		private static void WriteUriAttributeIfPresent(XmlWriter writer, string attName, string attNs, Uri value)
-		{
-			if (value != null) writer.WriteAttributeString(attName, attNs, value.ToString());
-		}
-
-		static void WriteStringElement(XmlWriter writer, string elName, string elNs, string value)
-		{
-			if (!IsNullOrEmpty(value))
-			{
-				writer.WriteStartElement(elName, elNs);
-				writer.WriteString(value);
-				writer.WriteEndElement();
-			}
-		}
-
-		void WriteXEncKeySize(XmlWriter writer, int keySize)
-		{
-			writer.WriteStartElement("KeySize", XEncNs);
-			writer.WriteString(keySize.ToString());
-			writer.WriteEndElement();
-		}
-
-		// md:EncryptionMethod and xenc:EncryptionMethod are virtually identical, but have different namespaces
-		// md:EncryptionMethod is not well defined so I've kept it as a separate type for now
-		protected virtual void WriteXEncEncryptionMethod(XmlWriter writer, XEncEncryptionMethod method)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (method == null)
-			{
-				throw new ArgumentNullException(nameof(method));
-			}
-
-			writer.WriteStartElement("EncryptionMethod", XEncNs);
-			writer.WriteAttributeString("Algorithm", method.Algorithm.ToString());
-			WriteCustomAttributes(writer, method);
-
-			if (method.KeySize != 0)
-			{
-				WriteXEncKeySize(writer, method.KeySize);
-			}
-			WriteBase64Element(writer, "OAEPparams", XEncNs, method.OAEPparams);
-
-			WriteCustomElements(writer, method);
-			writer.WriteEndElement();
-		}
-
-		void WriteCollection<T>(XmlWriter writer, IEnumerable<T> elts, Action<XmlWriter, T> writeHandler)
-		{
-			foreach (var elt in elts)
-			{
-				writeHandler(writer, elt);
-			}
-		}
-
-		protected virtual void WriteRSAKeyValue(XmlWriter writer, RsaKeyValue rsa)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (rsa == null)
-			{
-				throw new ArgumentNullException(nameof(rsa));
-			}
-
-			writer.WriteStartElement("RSAKeyValue", DSigNs);
-			WriteCustomAttributes(writer, rsa);
-
-			WriteBase64Element(writer, "Modulus", DSigNs, rsa.Parameters.Modulus);
-			WriteBase64Element(writer, "Exponent", DSigNs, rsa.Parameters.Exponent);
-
-			WriteCustomElements(writer, rsa);
-			writer.WriteEndElement();
-		}
-
-		static byte[] GetIntAsBigEndian(int value)
-		{
-			byte[] data = new byte[4];
-			data[0] = (byte)(((uint)value >> 24) & 0xff);
-			data[1] = (byte)(((uint)value >> 16) & 0xff);
-			data[2] = (byte)(((uint)value >> 8) & 0xff);
-			data[3] = (byte)((uint)value & 0xff);
-			return data;
-		}
-
-		protected virtual void WriteDSAKeyValue(XmlWriter writer, DsaKeyValue dsa)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (dsa == null)
-			{
-				throw new ArgumentNullException(nameof(dsa));
-			}
-
-			writer.WriteStartElement("DSAKeyValue", DSigNs);
-			WriteCustomAttributes(writer, dsa);
-
-			WriteBase64Element(writer, "P", DSigNs, dsa.Parameters.P);
-			WriteBase64Element(writer, "Q", DSigNs, dsa.Parameters.Q);
-			WriteBase64Element(writer, "G", DSigNs, dsa.Parameters.G);
-			WriteBase64Element(writer, "Y", DSigNs, dsa.Parameters.Y);
-			WriteBase64Element(writer, "J", DSigNs, dsa.Parameters.J);
-			WriteBase64Element(writer, "Seed", DSigNs, dsa.Parameters.Seed);
-			WriteBase64Element(writer, "PgenCounter", DSigNs,
-				GetIntAsBigEndian(dsa.Parameters.Counter));
-
-			WriteCustomElements(writer, dsa);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteECKeyValue(XmlWriter writer, EcKeyValue ec)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (ec == null)
-			{
-				throw new ArgumentNullException(nameof(ec));
-			}
-
-			writer.WriteStartElement("ECKeyValue", DSig11Ns);
-			WriteCustomAttributes(writer, ec);
-
-			writer.WriteStartElement("NamedCurve", DSig11Ns);
-			writer.WriteAttributeString("URI", "urn:oid:" + ec.Parameters.Curve.Oid.Value);
-			writer.WriteEndElement();
-
-			byte[] data = new byte[ec.Parameters.Q.X.Length + ec.Parameters.Q.Y.Length + 1];
-			data[0] = 4;
-			Array.Copy(ec.Parameters.Q.X, 0, data, 1, ec.Parameters.Q.X.Length);
-			Array.Copy(ec.Parameters.Q.Y, 0, data, 1 + ec.Parameters.Q.X.Length,
-				ec.Parameters.Q.Y.Length);
-			WriteBase64Element(writer, "PublicKey", DSig11Ns, data);
-
-			WriteCustomElements(writer, ec);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteKeyValue(XmlWriter writer, KeyValue keyValue)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (keyValue == null)
-			{
-				throw new ArgumentNullException(nameof(keyValue));
-			}
-			writer.WriteStartElement("KeyValue", DSigNs);
-			WriteCustomAttributes(writer, keyValue);
-			if (keyValue is RsaKeyValue rsa)
-			{
-				WriteRSAKeyValue(writer, rsa);
-			}
-			else if (keyValue is DsaKeyValue dsa)
-			{
-				WriteDSAKeyValue(writer, dsa);
-			}
-			else if (keyValue is EcKeyValue ec)
-			{
-				WriteECKeyValue(writer, ec);
-			}
-			WriteCustomElements(writer, keyValue);
-			writer.WriteEndElement();
-	    }
-
-	    static void WriteWrappedElements(XmlWriter writer, string wrapPrefix,
-	        string wrapName, string wrapNs, IEnumerable<XmlElement> elts)
+        // TODO: Custom approach vs SecurityTokenSerializer + KeyIdentifierClause
+        protected virtual void WriteDSigKeyInfo(XmlWriter writer, DSigKeyInfo keyInfo)
 	    {
-	        if (elts.Any())
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (keyInfo == null) throw new ArgumentNullException(nameof(keyInfo));
+
+	        writer.WriteStartElement("KeyInfo", DSigNamespace);
+            writer.WriteAttributeIfPresent("Id", null, keyInfo.Id);
+	        WriteCustomAttributes(writer, keyInfo);
+
+	        foreach (var keyName in keyInfo.KeyNames)
 	        {
-	            writer.WriteStartElement(wrapPrefix, wrapName, wrapNs);
-	            foreach (var elt in elts)
-	            {
-	                elt.WriteTo(writer);
-	            }
-	            writer.WriteEndElement();
+	            writer.WriteElementString("KeyName", DSigNamespace, keyName);
 	        }
+
+	        foreach (var keyValue in keyInfo.KeyValues) WriteKeyValue(writer, keyValue);
+	        foreach (var keyRetrievalMethods in keyInfo.RetrievalMethods) WriteRetrievalMethod(writer, keyRetrievalMethods);
+	        foreach (var keyData in keyInfo.Data) WriteKeyData(writer, keyData);
+
+	        WriteCustomElements(writer, keyInfo);
+	        writer.WriteEndElement();
 	    }
 
-        protected virtual void WriteRetrievalMethod(XmlWriter writer, RetrievalMethod method)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (method == null)
-			{
-				throw new ArgumentNullException(nameof(method));
-			}
+	    protected virtual void WriteKeyValue(XmlWriter writer, KeyValue keyValue)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (keyValue == null) throw new ArgumentNullException(nameof(keyValue));
 
-			writer.WriteStartElement("RetrievalMethod", DSigNs);
-			WriteUriAttributeIfPresent(writer, "URI", null, method.Uri);
-			WriteUriAttributeIfPresent(writer, "Type", null, method.Type);
-			WriteCustomAttributes(writer, method);
+	        writer.WriteStartElement("KeyValue", DSigNamespace);
+	        WriteCustomAttributes(writer, keyValue);
 
-			WriteWrappedElements(writer, "ds", "Transforms", DSigNs, method.Transforms); 
+	        if (keyValue is RsaKeyValue rsa)
+	        {
+	            WriteRsaKeyValue(writer, rsa);
+	        }
+	        else
+	        {
+                throw new MetadataSerializationException("Unsupported Key Type");
+	        }
 
-			WriteCustomElements(writer, method);
-			writer.WriteEndElement();
-		}
+	        WriteCustomElements(writer, keyValue);
+	        writer.WriteEndElement();
+	    }
 
-		protected virtual void WriteX509IssuerSerial(XmlWriter writer, X509IssuerSerial issuerSerial)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (issuerSerial == null)
-			{
-				throw new ArgumentNullException(nameof(issuerSerial));
-			}
+	    protected virtual void WriteRsaKeyValue(XmlWriter writer, RsaKeyValue rsa)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (rsa == null) throw new ArgumentNullException(nameof(rsa));
 
-			writer.WriteStartElement("X509IssuerSerial", DSigNs);
-			WriteCustomAttributes(writer, issuerSerial);
-			WriteStringElement(writer, "X509IssuerName", DSigNs, issuerSerial.Name);
-			WriteStringElement(writer, "X509SerialNumber", DSigNs, issuerSerial.Serial);
-			WriteCustomElements(writer, issuerSerial);
-			writer.WriteEndElement();
-		}
+	        writer.WriteStartElement("RSAKeyValue", DSigNamespace);
+	        WriteCustomAttributes(writer, rsa);
 
-		protected virtual void WriteX509Digest(XmlWriter writer, X509Digest digest)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (digest == null)
-			{
-				throw new ArgumentNullException(nameof(digest));
-			}
+	        writer.WriteElementIfPresent("Modulus", DSigNamespace, rsa.Parameters.Modulus);
+	        writer.WriteElementIfPresent("Exponent", DSigNamespace, rsa.Parameters.Exponent);
 
-			writer.WriteStartElement("X509Digest", DSigNs);
-			writer.WriteAttributeString("Algorithm", digest.Algorithm.ToString());
-			WriteCustomAttributes(writer, digest);
-			writer.WriteBase64(digest.Value, 0, digest.Value.Length);
-			WriteCustomElements(writer, digest);
-			writer.WriteEndElement();
-		}
+	        WriteCustomElements(writer, rsa);
+	        writer.WriteEndElement();
+	    }
 
-		protected virtual void WriteX509Data(XmlWriter writer, X509Data data)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (data == null)
-			{
-				throw new ArgumentNullException(nameof(data));
-			}
+        //TODO: wat dis
+	    protected virtual void WriteRetrievalMethod(XmlWriter writer, RetrievalMethod method)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (method == null) throw new ArgumentNullException(nameof(method));
 
-			writer.WriteStartElement("X509Data", DSigNs);
-			WriteCustomAttributes(writer, data);
-			if (data.IssuerSerial != null)
-			{
-				WriteX509IssuerSerial(writer, data.IssuerSerial);
-			}
-			if (data.SKI != null)
-			{
-				WriteBase64Element(writer, "X509SKI", DSigNs, data.SKI);
-			}
+	        writer.WriteStartElement("RetrievalMethod", DSigNamespace);
+	        writer.WriteAttributeIfPresent("URI", null, method.Uri);
+	        writer.WriteAttributeIfPresent("Type", null, method.Type);
+	        WriteCustomAttributes(writer, method);
 
-            if (!IsNullOrEmpty(data.SubjectName)) writer.WriteElementString("X509SubjectName", DSigNs, data.SubjectName);
+            // TODO: Wrapped Elements?
+	        //WriteWrappedElements(writer, "ds", "Transforms", DSigNamespace, method.Transforms);
 
-			foreach (var cert in data.Certificates)
-			{
-				WriteBase64Element(writer, "X509Certificate", DSigNs, cert.GetRawCertData());
-			}
-			if (data.CRL != null)
-			{
-				WriteBase64Element(writer, "X509CRL", DSigNs, data.CRL);
-			}
-			if (data.Digest != null)
-			{
-				WriteX509Digest(writer, data.Digest);
-			}
+	        WriteCustomElements(writer, method);
+	        writer.WriteEndElement();
+	    }
 
-			WriteCustomElements(writer, data);
-			writer.WriteEndElement();
-		}
+	    protected virtual void WriteKeyData(XmlWriter writer, KeyData keyData)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (keyData == null) throw new ArgumentNullException(nameof(keyData));
 
-		protected virtual void WriteKeyData(XmlWriter writer, KeyData keyData)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (keyData == null)
-			{
-				throw new ArgumentNullException(nameof(keyData));
-			}
-			if (keyData is X509Data x509Data)
-			{
-				WriteX509Data(writer, x509Data);
-			}
-		}
+	        if (keyData is X509Data x509Data) WriteX509Data(writer, x509Data);
+            else throw new MetadataSerializationException("Unsupported KeyData type");
+	    }
 
-		protected virtual void WriteDSigKeyInfo(XmlWriter writer, DSigKeyInfo keyInfo)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (keyInfo == null)
-			{
-				throw new ArgumentNullException(nameof(keyInfo));
-			}
+	    protected virtual void WriteX509Data(XmlWriter writer, X509Data data)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (data == null) throw new ArgumentNullException(nameof(data));
 
-			writer.WriteStartElement("KeyInfo", DSigNs);
-			WriteStringAttributeIfPresent(writer, "Id", null, keyInfo.Id);
-			WriteCustomAttributes(writer, keyInfo);
+	        writer.WriteStartElement("X509Data", DSigNamespace);
+	        WriteCustomAttributes(writer, data);
 
-		    foreach (var value in keyInfo.KeyNames) writer.WriteElementString("KeyName", DSigNs, value);
-            WriteCollection(writer, keyInfo.KeyValues, WriteKeyValue);
-			WriteCollection(writer, keyInfo.RetrievalMethods, WriteRetrievalMethod);
-			WriteCollection(writer, keyInfo.Data, WriteKeyData);
-			
-			WriteCustomElements(writer, keyInfo);
-			writer.WriteEndElement();
-		}
+	        if (data.IssuerSerial != null)
+	        {
+	            WriteX509IssuerSerial(writer, data.IssuerSerial);
+	        }
 
-		protected virtual void WriteCipherReference(XmlWriter writer, CipherReference reference)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (reference == null)
-			{
-				throw new ArgumentNullException(nameof(reference));
-			}
+	        if (data.SKI != null)
+	        {
+	            writer.WriteElementIfPresent("X509SKI", DSigNamespace, data.SKI);
+	        }
 
-			writer.WriteStartElement("CipherReference", XEncNs);
-			WriteUriAttributeIfPresent(writer, "URI", null, reference.Uri);
-			WriteCustomAttributes(writer, reference);
+	        writer.WriteElementIfPresent("X509SubjectName", DSigNamespace, data.SubjectName);
+	        foreach (var cert in data.Certificates)
+	        {
+	            writer.WriteElementIfPresent("X509Certificate", DSigNamespace, cert.GetRawCertData());
+	        }
+	        if (data.CRL != null)
+	        {
+	            writer.WriteElementIfPresent("X509CRL", DSigNamespace, data.CRL);
+	        }
+	        if (data.Digest != null)
+	        {
+	            WriteX509Digest(writer, data.Digest);
+	        }
 
-			WriteWrappedElements(writer, "xenc", "Transforms", XEncNs, reference.Transforms);
-			WriteCustomElements(writer, reference);
-			writer.WriteEndElement();
-		}
+	        WriteCustomElements(writer, data);
+	        writer.WriteEndElement();
+	    }
 
-		protected virtual void WriteCipherData(XmlWriter writer, CipherData data)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (data == null)
-			{
-				throw new ArgumentNullException(nameof(data));
-			}
+	    protected virtual void WriteX509IssuerSerial(XmlWriter writer, X509IssuerSerial issuerSerial)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (issuerSerial == null) throw new ArgumentNullException(nameof(issuerSerial));
 
-			writer.WriteStartElement("CipherData", XEncNs);
-			WriteCustomAttributes(writer, data);
-			if (data.CipherValue != null)
-			{
-				WriteStringElement(writer, "CipherValue", XEncNs, data.CipherValue);
-			}
-			if (data.CipherReference != null)
-			{
-				WriteCipherReference(writer, data.CipherReference);
-			}
-			WriteCustomElements(writer, data);
-			writer.WriteEndElement();
-		}
+	        writer.WriteStartElement("X509IssuerSerial", DSigNamespace);
+	        WriteCustomAttributes(writer, issuerSerial);
+	        writer.WriteElementIfPresent("X509IssuerName", DSigNamespace, issuerSerial.Name);
+	        writer.WriteElementIfPresent("X509SerialNumber", DSigNamespace, issuerSerial.Serial);
+	        WriteCustomElements(writer, issuerSerial);
+	        writer.WriteEndElement();
+	    }
 
-		// <element name="EncryptionProperty" type="xenc:EncryptionPropertyType"/> 
-		// 
-		// <complexType name="EncryptionPropertyType" mixed="true">
-		//   <choice maxOccurs="unbounded">
-		//     <any namespace="##other" processContents="lax"/>
-		//   </choice>
-		//   <attribute name="Target" type="anyURI" use="optional"/> 
-		//   <attribute name="Id" type="ID" use="optional"/> 
-		//   <anyAttribute namespace="http://www.w3.org/XML/1998/namespace"/>
-		// </complexType>
-		protected virtual void WriteEncryptionProperty(XmlWriter writer, EncryptionProperty property)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (property == null)
-			{
-				throw new ArgumentNullException(nameof(property));
-			}
+	    protected virtual void WriteX509Digest(XmlWriter writer, X509Digest digest)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (digest == null) throw new ArgumentNullException(nameof(digest));
 
-			writer.WriteStartElement("EncryptionProperty", XEncNs);
-			WriteUriAttributeIfPresent(writer, "Target", null, property.Target);
-			WriteStringAttributeIfPresent(writer, "Id", null, property.Id);
-			WriteCustomAttributes(writer, property);
-			WriteCustomElements(writer, property);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteEncryptionProperties(XmlWriter writer, EncryptionProperties properties)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (properties == null)
-			{
-				throw new ArgumentNullException(nameof(properties));
-			}
-			writer.WriteStartElement("EncryptionProperties", XEncNs);
-			WriteStringAttributeIfPresent(writer, "Id", null, properties.Id);
-			WriteCustomAttributes(writer, properties);
-			WriteCollection(writer, properties.Properties, WriteEncryptionProperty);
-			WriteCustomElements(writer, properties);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteEncryptedData(XmlWriter writer, EncryptedData data)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (data == null)
-			{
-				throw new ArgumentNullException(nameof(data));
-			}
-
-			writer.WriteStartElement("EncryptedData", XEncNs);
-			WriteStringAttributeIfPresent(writer, "Id", null, data.Id);
-			WriteUriAttributeIfPresent(writer, "Type", null, data.Type);
-			WriteStringAttributeIfPresent(writer, "MimeType", null, data.MimeType);
-			WriteUriAttributeIfPresent(writer, "Encoding", null, data.Encoding);
-			WriteCustomAttributes(writer, data);
-
-			if (data.EncryptionMethod != null)
-			{
-				WriteXEncEncryptionMethod(writer, data.EncryptionMethod);
-			}
-			if (data.KeyInfo != null)
-			{
-				WriteDSigKeyInfo(writer, data.KeyInfo);
-			}
-			if (data.CipherData != null)
-			{
-				WriteCipherData(writer, data.CipherData);
-			}
-			if (data.EncryptionProperties != null)
-			{
-				WriteEncryptionProperties(writer, data.EncryptionProperties);
-			}
-
-			WriteCustomElements(writer, data);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteEncryptedValue(XmlWriter writer, EncryptedValue value)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (value == null)
-			{
-				throw new ArgumentNullException(nameof(value));
-			}
-
-			writer.WriteStartElement("EncryptedValue", AuthNs);
-			if (value.DecryptionCondition != null)
-			{
-				writer.WriteAttributeString("DecryptionCondition", value.DecryptionCondition.ToString());
-			}
-			WriteCustomAttributes(writer, value);
-
-			WriteEncryptedData(writer, value.EncryptedData);
-
-			WriteCustomElements(writer, value);
-			writer.WriteEndElement();
-		}
+	        writer.WriteStartElement("X509Digest", DSigNamespace);
+	        writer.WriteAttributeString("Algorithm", digest.Algorithm.ToString());
+	        WriteCustomAttributes(writer, digest);
+	        writer.WriteBase64(digest.Value, 0, digest.Value.Length);
+	        WriteCustomElements(writer, digest);
+	        writer.WriteEndElement();
+	    }
     }
 }

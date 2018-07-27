@@ -16,134 +16,140 @@ namespace ScottBrady91.IdentityModel.Tests
     {
         private const string Xmlns = "urn:oasis:names:tc:SAML:2.0:metadata";
 
-        private static readonly IdentityProviderSingleSignOnDescriptor Idp = new IdentityProviderSingleSignOnDescriptor
-        {
-            ErrorUrl = new Uri("http://localhost/uh-oh"),
-            WantAuthenticationRequestsSigned = true,
-            ProtocolsSupported = {new Uri("urn:oasis:names:tc:SAML:2.0:protocol")},
-            SingleSignOnServices = {new ProtocolEndpoint(new Uri("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"), new Uri("http://localhost:5000/saml/sso"))},
-            SingleLogoutServices = {new ProtocolEndpoint(new Uri("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"), new Uri("http://localhost:5000/saml/slo"))},
-            NameIdentifierFormats = {new Uri("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified")}
-        };
+        private readonly IdentityProviderSingleSignOnDescriptor idp;
+        private readonly EntityDescriptor entity;
 
-        private static readonly EntityDescriptor Entity = new EntityDescriptor
+        public MetadataSerializerTests()
         {
-            EntityId = new EntityId("internal"),
-            RoleDescriptors = {Idp},
-            Organization = new Organization
+            idp = new IdentityProviderSingleSignOnDescriptor
             {
-                Names = {new LocalizedName("scott", new CultureInfo("en-GB"))},
-                DisplayNames = {new LocalizedName("Scott", new CultureInfo("en-GB"))},
-                Urls = {new LocalizedUri(new Uri("https://www.scottbrady91.com"), new CultureInfo("en-GB"))}
-            },
-            Contacts =
+                ErrorUrl = new Uri("http://localhost/uh-oh"),
+                WantAuthenticationRequestsSigned = true,
+                ProtocolsSupported = { new Uri("urn:oasis:names:tc:SAML:2.0:protocol") },
+                SingleSignOnServices = { new ProtocolEndpoint(new Uri("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"), new Uri("http://localhost:5000/saml/sso")) },
+                SingleLogoutServices = { new ProtocolEndpoint(new Uri("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"), new Uri("http://localhost:5000/saml/slo")) },
+                NameIdentifierFormats = { new Uri("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified") }
+            };
+
+            entity = new EntityDescriptor
             {
-                new ContactPerson
+                EntityId = new EntityId("internal"),
+                RoleDescriptors = {idp},
+                Organization = new Organization
                 {
-                    GivenName = "Scott",
-                    Surname = "Brady",
-                    Company = "Rock Solid Knowledge",
-                    Type = ContactType.Technical,
-                    EmailAddresses = {"scott.brady@rocksolidknowledge.com"},
-                    TelephoneNumbers = {"441174220515"}
+                    Names = {new LocalizedName("scott", new CultureInfo("en-GB"))},
+                    DisplayNames = {new LocalizedName("Scott", new CultureInfo("en-GB"))},
+                    Urls = {new LocalizedUri(new Uri("https://www.scottbrady91.com"), new CultureInfo("en-GB"))}
+                },
+                Contacts =
+                {
+                    new ContactPerson
+                    {
+                        GivenName = "Scott",
+                        Surname = "Brady",
+                        Company = "Rock Solid Knowledge",
+                        Type = ContactType.Technical,
+                        EmailAddresses = {"scott.brady@rocksolidknowledge.com"},
+                        TelephoneNumbers = {"441174220515"}
+                    }
                 }
-            }
-        };
+            };
+        }
 
         // TODO: What about ID?
         [Fact]
         public void WithEntityId_ExpectCorrectNamespaceAndEntityId()
         {
-            var xml = SerializeMetadata(Entity);
+            var xml = SerializeMetadata(entity);
 
             xml.Name.Should().Be("EntityDescriptor");
-            xml.Should().HaveAttribute("entityID", Entity.EntityId.Id);
+            xml.Should().HaveAttribute("entityID", entity.EntityId.Id);
             xml.NamespaceURI.Should().Be(Xmlns);
         }
 
         [Fact]
         public void WithOrganization_ExpectOrganizationInMetadata()
         {
-            var xml = SerializeMetadata(Entity);
+            var xml = SerializeMetadata(entity);
 
             xml.Should().HaveElementWithNamespace("Organization", Xmlns);
             var organization = xml["Organization"];
 
             organization.Should().HaveElementWithNamespace("OrganizationName", Xmlns)
-                .Which.Should().HaveAttributeWithNamespace("lang", "http://www.w3.org/XML/1998/namespace", Entity.Organization.Names.Single().Language.Name)
-                .And.HaveInnerText(Entity.Organization.Names.Single().Name);
+                .Which.Should().HaveAttributeWithNamespace("lang", "http://www.w3.org/XML/1998/namespace", entity.Organization.Names.Single().Language.Name)
+                .And.HaveInnerText(entity.Organization.Names.Single().Name);
 
             organization.Should().HaveElementWithNamespace("OrganizationDisplayName", Xmlns)
-                .Which.Should().HaveAttributeWithNamespace("lang", "http://www.w3.org/XML/1998/namespace", Entity.Organization.DisplayNames.Single().Language.Name)
-                .And.HaveInnerText(Entity.Organization.DisplayNames.Single().Name);
+                .Which.Should().HaveAttributeWithNamespace("lang", "http://www.w3.org/XML/1998/namespace", entity.Organization.DisplayNames.Single().Language.Name)
+                .And.HaveInnerText(entity.Organization.DisplayNames.Single().Name);
 
             organization.Should().HaveElementWithNamespace("OrganizationURL", Xmlns)
-                .Which.Should().HaveAttributeWithNamespace("lang", "http://www.w3.org/XML/1998/namespace", Entity.Organization.Urls.Single().Language.Name)
-                .And.HaveInnerText(Entity.Organization.Urls.Single().Uri.ToString());
+                .Which.Should().HaveAttributeWithNamespace("lang", "http://www.w3.org/XML/1998/namespace", entity.Organization.Urls.Single().Language.Name)
+                .And.HaveInnerText(entity.Organization.Urls.Single().Uri.ToString());
         }
 
         [Fact]
         public void WithContact_ExceptContactInMetadata()
         {
-            var xml = SerializeMetadata(Entity);
+            var xml = SerializeMetadata(entity);
 
             xml.Should().HaveElementWithNamespace("ContactPerson", Xmlns)
                 .Which.Should().HaveAttribute("contactType", "technical");
             var contact = xml["ContactPerson"];
 
             contact.Should().HaveElementWithNamespace("GivenName", Xmlns)
-                .Which.Should().HaveInnerText(Entity.Contacts.Single().GivenName);
+                .Which.Should().HaveInnerText(entity.Contacts.Single().GivenName);
             contact.Should().HaveElementWithNamespace("SurName", Xmlns)
-                .Which.Should().HaveInnerText(Entity.Contacts.Single().Surname);
+                .Which.Should().HaveInnerText(entity.Contacts.Single().Surname);
             contact.Should().HaveElementWithNamespace("Company", Xmlns)
-                .Which.Should().HaveInnerText(Entity.Contacts.Single().Company);
+                .Which.Should().HaveInnerText(entity.Contacts.Single().Company);
             contact.Should().HaveElementWithNamespace("EmailAddress", Xmlns)
-                .Which.Should().HaveInnerText(Entity.Contacts.Single().EmailAddresses.Single());
+                .Which.Should().HaveInnerText(entity.Contacts.Single().EmailAddresses.Single());
             contact.Should().HaveElementWithNamespace("TelephoneNumber", Xmlns)
-                .Which.Should().HaveInnerText(Entity.Contacts.Single().TelephoneNumbers.Single());
+                .Which.Should().HaveInnerText(entity.Contacts.Single().TelephoneNumbers.Single());
         }
 
         [Fact]
         public void WhenIdp_ExpectIdpAttributesInMetadata()
         {
-            var xml = SerializeMetadata(Entity);
+            var xml = SerializeMetadata(entity);
 
             xml.Should().HaveElementWithNamespace("IDPSSODescriptor", Xmlns)
-                .Which.Should().HaveAttribute("protocolSupportEnumeration", Idp.ProtocolsSupported.Single().ToString())
-                .And.HaveAttribute("WantAuthnRequestsSigned", Idp.WantAuthenticationRequestsSigned.ToString().ToLower())
-                .And.HaveAttribute("errorURL", Idp.ErrorUrl.ToString());
+                .Which.Should().HaveAttribute("protocolSupportEnumeration", idp.ProtocolsSupported.Single().ToString())
+                .And.HaveAttribute("WantAuthnRequestsSigned", idp.WantAuthenticationRequestsSigned.ToString().ToLower())
+                .And.HaveAttribute("errorURL", idp.ErrorUrl.ToString());
         }
 
         [Fact]
         public void WhenIdpWithSsoService_ExpectSsoServiceInMetadata()
         {
-            var xml = SerializeMetadata(Entity);
+            var xml = SerializeMetadata(entity);
 
             xml.Should().HaveElementWithNamespace("IDPSSODescriptor", Xmlns);
             var idpElement = xml["IDPSSODescriptor"];
 
             idpElement.Should().HaveElementWithNamespace("SingleSignOnService", Xmlns)
-                .Which.Should().HaveAttribute("Binding", Idp.SingleSignOnServices.Single().Binding.ToString())
-                .And.HaveAttribute("Location", Idp.SingleSignOnServices.Single().Location.ToString());
+                .Which.Should().HaveAttribute("Binding", idp.SingleSignOnServices.Single().Binding.ToString())
+                .And.HaveAttribute("Location", idp.SingleSignOnServices.Single().Location.ToString());
         }
 
         [Fact]
         public void WhenIdpWithSloService_ExpectSloServiceInMetadata()
         {
-            var xml = SerializeMetadata(Entity);
+            var xml = SerializeMetadata(entity);
 
             xml.Should().HaveElementWithNamespace("IDPSSODescriptor", Xmlns);
             var idpElement = xml["IDPSSODescriptor"];
 
             idpElement.Should().HaveElementWithNamespace("SingleLogoutService", Xmlns)
-                .Which.Should().HaveAttribute("Binding", Idp.SingleLogoutServices.Single().Binding.ToString())
-                .And.HaveAttribute("Location", Idp.SingleLogoutServices.Single().Location.ToString());
+                .Which.Should().HaveAttribute("Binding", idp.SingleLogoutServices.Single().Binding.ToString())
+                .And.HaveAttribute("Location", idp.SingleLogoutServices.Single().Location.ToString());
         }
 
         [Fact]
         public void WhenIdpWithNameIdentifierFormats_ExpectNameIdentifierFormatsInMetadata()
         {
-            var xml = SerializeMetadata(Entity);
+            var xml = SerializeMetadata(entity);
 
             xml.Should().HaveElementWithNamespace("IDPSSODescriptor", Xmlns);
             var idpElement = xml["IDPSSODescriptor"];
@@ -158,9 +164,9 @@ namespace ScottBrady91.IdentityModel.Tests
             var clause = new X509SecurityToken(new X509Certificate2("idsrv3test.pfx", "idsrv3test"))
                 .CreateKeyIdentifierClause<X509RawDataKeyIdentifierClause>();
             var key = new KeyDescriptor(new SecurityKeyIdentifier(clause)) { Use = KeyType.Signing };
-            Idp.Keys.Add(key);
+            idp.Keys.Add(key);
 
-            var xml = SerializeMetadata(Entity);
+            var xml = SerializeMetadata(entity);
 
             xml.Should().HaveElementWithNamespace("IDPSSODescriptor", Xmlns);
             var idpElement = xml["IDPSSODescriptor"];
