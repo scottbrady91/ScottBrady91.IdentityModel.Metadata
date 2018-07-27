@@ -21,9 +21,9 @@ namespace ScottBrady91.IdentityModel.Tests
             ErrorUrl = new Uri("http://localhost/uh-oh"),
             WantAuthenticationRequestsSigned = true,
             ProtocolsSupported = {new Uri("urn:oasis:names:tc:SAML:2.0:protocol")},
-            SingleSignOnServices = {new SingleSignOnService(new Uri("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"), new Uri("http://localhost:5000/saml/sso"))},
-            SingleLogoutServices = {new SingleLogoutService(new Uri("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"), new Uri("http://localhost:5000/saml/slo"))},
-            NameIdentifierFormats = {new NameIDFormat{Uri = new Uri("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified")}}
+            SingleSignOnServices = {new ProtocolEndpoint(new Uri("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"), new Uri("http://localhost:5000/saml/sso"))},
+            SingleLogoutServices = {new ProtocolEndpoint(new Uri("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"), new Uri("http://localhost:5000/saml/slo"))},
+            NameIdentifierFormats = {new Uri("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified")}
         };
 
         private static readonly EntityDescriptor Entity = new EntityDescriptor

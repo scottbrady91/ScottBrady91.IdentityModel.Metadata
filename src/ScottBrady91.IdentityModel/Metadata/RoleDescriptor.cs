@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Xml;
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
@@ -17,9 +16,7 @@ namespace ScottBrady91.IdentityModel.Metadata
         public Organization Organization { get; set; }
         public Uri ErrorUrl { get; set; }
 
-        public ICollection<XmlElement> Extensions { get; private set; } = new Collection<XmlElement>(); // TODO: Metadata Extensions???
-
-		protected RoleDescriptor() : this(new Collection<Uri>()) { }
+        protected RoleDescriptor() : this(new Collection<Uri>()) { }
         protected RoleDescriptor(ICollection<Uri> protocolsSupported)
 		{
 			ProtocolsSupported = protocolsSupported;

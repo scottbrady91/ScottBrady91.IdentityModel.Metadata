@@ -237,11 +237,6 @@ namespace ScottBrady91.IdentityModel.Metadata
                 WriteContactPerson(writer, person);
             }
 
-            foreach (var meta in entityDescriptor.AdditionalMetadataLocations)
-            {
-                WriteAdditionalMetadataLocation(writer, meta);
-            }
-
             WriteCustomElements(writer, entityDescriptor);
 
             writer.WriteEndElement();
@@ -579,10 +574,10 @@ namespace ScottBrady91.IdentityModel.Metadata
             {
                 foreach (var nameId in singleSignOnDescriptor.NameIdentifierFormats)
                 {
-                    if (!nameId.Uri.IsAbsoluteUri) throw new MetadataSerializationException("NameIdentifierFormat is not absolute URI");
+                    if (!nameId.IsAbsoluteUri) throw new MetadataSerializationException("NameIdentifierFormat is not absolute URI");
                     
                     writer.WriteStartElement(Saml2MetadataConstants.Elements.NameIdFormat, Saml2MetadataConstants.Namespace);
-                    writer.WriteString(nameId.Uri.AbsoluteUri);
+                    writer.WriteString(nameId.AbsoluteUri);
                     writer.WriteEndElement();
                 }
             }
@@ -1223,62 +1218,6 @@ namespace ScottBrady91.IdentityModel.Metadata
 			WriteEncryptedData(writer, value.EncryptedData);
 
 			WriteCustomElements(writer, value);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteClaimValue(XmlWriter writer, ClaimValue value)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (value == null)
-			{
-				throw new ArgumentNullException(nameof(value));
-			}
-
-			if (!IsNullOrEmpty(value.Value) && value.StructuredValue != null)
-			{
-				throw new MetadataSerializationException(
-					"Invalid claim value that has both Value and StructuredValue properties set");
-			}
-			if (value.Value == null && value.StructuredValue == null)
-			{
-				throw new MetadataSerializationException(
-					"Invalid claim value that has neither Value nor StructuredValue properties set");
-			}
-
-			if (value.Value != null)
-			{
-				WriteStringElement(writer, "Value", AuthNs, value.Value);
-			}
-			else
-			{
-				writer.WriteStartElement("StructuredValue", AuthNs);
-				foreach (var elt in value.StructuredValue)
-				{
-					elt.WriteTo(writer);
-				}
-				writer.WriteEndElement();
-			}
-		}
-        
-		protected virtual void WriteAdditionalMetadataLocation(XmlWriter writer, AdditionalMetadataLocation location)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (location == null)
-			{
-				throw new ArgumentNullException(nameof(location));
-			}
-
-			writer.WriteStartElement("AdditionalMetadataLocation", Saml2MetadataConstants.Namespace);
-			WriteCustomAttributes(writer, location);
-			writer.WriteAttributeString("namespace", location.Namespace);
-			writer.WriteString(location.Uri.ToString());
-			WriteCustomElements(writer, location);
 			writer.WriteEndElement();
 		}
     }
