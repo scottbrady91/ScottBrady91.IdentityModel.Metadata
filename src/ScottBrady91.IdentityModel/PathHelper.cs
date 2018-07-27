@@ -18,10 +18,9 @@ namespace ScottBrady91.IdentityModel
             {
                 return Path.GetFullPath(virtualPath);
             }
-
-
+            
             // Strip until and including the initial /
-            virtualPath = virtualPath.Substring(virtualPath.IndexOfAny(new char[] { '/', '\\' }) + 1);
+            virtualPath = virtualPath.Substring(virtualPath.IndexOfAny(new[] {'/', '\\'}) + 1);
 
             // Normalize the slashes.
             virtualPath = virtualPath.Replace('/', '\\');

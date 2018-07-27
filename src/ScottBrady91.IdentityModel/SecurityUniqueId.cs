@@ -6,23 +6,23 @@ namespace ScottBrady91.IdentityModel
 {
     public class SecurityUniqueId
     {
-        static long nextId = 0;
-        static string commonPrefix = "uuid-" + Guid.NewGuid().ToString() + "-";
+        private static readonly string CommonPrefix = "uuid-" + Guid.NewGuid() + "-";
+        private static long nextId = 0;
+        
+        private readonly long id;
+        private readonly string prefix;
+        private string val;
 
-        long id;
-        string prefix;
-        string val;
-
-        SecurityUniqueId(string prefix, long id)
+        public SecurityUniqueId(string prefix, long id)
         {
             this.id = id;
             this.prefix = prefix;
-            this.val = null;
+            val = null;
         }
 
         public static SecurityUniqueId Create()
         {
-            return SecurityUniqueId.Create(commonPrefix);
+            return SecurityUniqueId.Create(CommonPrefix);
         }
 
         public static SecurityUniqueId Create(string prefix)
@@ -30,15 +30,6 @@ namespace ScottBrady91.IdentityModel
             return new SecurityUniqueId(prefix, Interlocked.Increment(ref nextId));
         }
 
-        public string Value
-        {
-            get
-            {
-                if (this.val == null)
-                    this.val = this.prefix + this.id.ToString(CultureInfo.InvariantCulture);
-
-                return this.val;
-            }
-        }
+        public string Value => val ?? (val = prefix + id.ToString(CultureInfo.InvariantCulture));
     }
 }
