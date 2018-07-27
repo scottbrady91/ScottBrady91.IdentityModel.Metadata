@@ -19,7 +19,7 @@ namespace ScottBrady91.IdentityModel.Tests
         private static readonly IdentityProviderSingleSignOnDescriptor Idp = new IdentityProviderSingleSignOnDescriptor
         {
             ErrorUrl = new Uri("http://localhost/uh-oh"),
-            WantAuthnRequestsSigned = true,
+            WantAuthenticationRequestsSigned = true,
             ProtocolsSupported = {new Uri("urn:oasis:names:tc:SAML:2.0:protocol")},
             SingleSignOnServices = {new SingleSignOnService(new Uri("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"), new Uri("http://localhost:5000/saml/sso"))},
             SingleLogoutServices = {new SingleLogoutService(new Uri("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"), new Uri("http://localhost:5000/saml/slo"))},
@@ -110,7 +110,7 @@ namespace ScottBrady91.IdentityModel.Tests
 
             xml.Should().HaveElementWithNamespace("IDPSSODescriptor", Xmlns)
                 .Which.Should().HaveAttribute("protocolSupportEnumeration", Idp.ProtocolsSupported.Single().ToString())
-                .And.HaveAttribute("WantAuthnRequestsSigned", Idp.WantAuthnRequestsSigned.ToString().ToLower())
+                .And.HaveAttribute("WantAuthnRequestsSigned", Idp.WantAuthenticationRequestsSigned.ToString().ToLower())
                 .And.HaveAttribute("errorURL", Idp.ErrorUrl.ToString());
         }
 

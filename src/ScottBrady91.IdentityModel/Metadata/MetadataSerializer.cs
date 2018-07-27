@@ -1,34 +1,24 @@
 ﻿using Microsoft.IdentityModel.Tokens.Saml2;
 using Microsoft.IdentityModel.Xml;
-using ScottBrady91.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Numerics;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Xml;
-using ScottBrady91.IdentityModel.Selectors;
-using SigningCredentials = Microsoft.IdentityModel.Tokens.SigningCredentials;
+using System.Xml.Schema;
+using static System.String;
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
 	public class MetadataSerializer
 	{
-		const string XmlNs = "http://www.w3.org/XML/1998/namespace";
-		const string FedNs = "http://docs.oasis-open.org/wsfed/federation/200706";
-		const string WsaNs = "http://www.w3.org/2005/08/addressing";
-		const string WspNs = "http://schemas.xmlsoap.org/ws/2002/12/policy";
-		const string Saml2MetadataNs = "urn:oasis:names:tc:SAML:2.0:metadata";
+		const string LanguageNamespaceUri = "http://www.w3.org/XML/1998/namespace";
 		const string Saml2AssertionNs = "urn:oasis:names:tc:SAML:2.0:assertion";
-		const string XsiNs = "http://www.w3.org/2001/XMLSchema-instance";
 		const string AuthNs = "http://docs.oasis-open.org/wsfed/authorization/200706";
 		const string XEncNs = "http://www.w3.org/2001/04/xmlenc#";
 		const string DSigNs = "http://www.w3.org/2000/09/xmldsig#";
-		const string EcDsaNs = "http://www.w3.org/2001/04/xmldsig-more#";
 		const string DSig11Ns = "http://www.w3.org/2009/xmldsig11#";
 		const string IdpDiscNs = "urn:oasis:names:tc:SAML:profiles:SSO:idp-discovery-protocol";
 
@@ -43,125 +33,728 @@ namespace ScottBrady91.IdentityModel.Metadata
 	        RevocationMode = IdentityConfiguration.DefaultRevocationMode;*/
         }
 
-		static void WriteWrappedElements(XmlWriter writer, string wrapPrefix,
-			string wrapName, string wrapNs, IEnumerable<XmlElement> elts)
-		{
-			if (elts.Any())
-			{
-				writer.WriteStartElement(wrapPrefix, wrapName, wrapNs);
-				foreach (var elt in elts)
-				{
-					elt.WriteTo(writer);
-				}
-				writer.WriteEndElement();
-			}
-		}
+	    protected virtual void WriteApplicationServiceDescriptor(XmlWriter writer, ApplicationServiceDescriptor appService)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (appService == null) throw new ArgumentNullException(nameof(appService));
 
-		protected virtual void WriteServiceName(XmlWriter writer, ServiceName serviceName)
-		{
-			writer.WriteStartElement("wsa", "ServiceName", WsaNs);
-			WriteCustomAttributes(writer, serviceName);
-			if (!String.IsNullOrEmpty(serviceName.PortName))
-			{
-				writer.WriteAttributeString("PortName", serviceName.PortName);
-			}
-			if (!String.IsNullOrEmpty(serviceName.Name))
-			{
-				writer.WriteString(serviceName.Name);
-			}
-			writer.WriteEndElement();
-		}
+	        writer.WriteStartElement(Saml2MetadataConstants.Elements.RoleDescriptor, Saml2MetadataConstants.Namespace);
+	        writer.WriteAttributeString("xsi", "type", XmlSchema.InstanceNamespace, FederationMetadataConstants.Prefix + ":" + FederationMetadataConstants.Elements.ApplicationServiceType);
+	        writer.WriteAttributeString("xmlns", FederationMetadataConstants.Prefix, null, FederationMetadataConstants.Namespace);
 
-		protected virtual void WriteEndpointReference(XmlWriter writer, EndpointReference endpointReference)
-		{
-			writer.WriteStartElement("wsa", "EndpointReference", WsaNs);
-			WriteCustomAttributes(writer, endpointReference);
-			writer.WriteStartElement("wsa", "Address", WsaNs);
-			writer.WriteString(endpointReference.Uri.ToString());
-			writer.WriteEndElement();
+	        WriteWebServiceDescriptorAttributes(writer, appService);
+	        WriteCustomAttributes(writer, appService);
 
-			WriteWrappedElements(writer, "wsa", "ReferenceProperties", WsaNs,
-				endpointReference.ReferenceProperties);
-			WriteWrappedElements(writer, "wsa", "ReferenceParameters", WsaNs,
-				endpointReference.ReferenceParameters);
-			if (!String.IsNullOrEmpty(endpointReference.PortType))
-			{
-				writer.WriteStartElement("wsa", "PortType", WsaNs);
-				writer.WriteString(endpointReference.PortType);
-				writer.WriteEndElement();
-			}
-			if (endpointReference.ServiceName != null)
-			{
-				WriteServiceName(writer, endpointReference.ServiceName);
-			}
-			WriteWrappedElements(writer, "wsa", "Metadata", WsaNs,
-				endpointReference.Metadata);
-			if (endpointReference.Policies.Count > 0)
-			{
-				foreach (var polElt in endpointReference.Policies)
-				{
-					writer.WriteStartElement("wsp", "Policy", WspNs);
-					polElt.WriteTo(writer);
-					writer.WriteEndElement();
-				}
-			}
-			WriteWrappedElements(writer, "wsp", "Policy", WspNs,
-				endpointReference.Policies);
-			WriteCustomElements(writer, endpointReference);
+	        WriteWebServiceDescriptorElements(writer, appService);
 
-			writer.WriteEndElement();
-		}
+	        WriteEndpointReferences(writer, FederationMetadataConstants.Elements.ApplicationServiceEndpoint, FederationMetadataConstants.Namespace, appService.Endpoints);
+	        WriteEndpointReferences(writer, FederationMetadataConstants.Elements.PassiveRequestorEndpoint, FederationMetadataConstants.Namespace, appService.PassiveRequestorEndpoints);
 
-		void WriteEndpointReferences(XmlWriter writer, string elName, string elNs,
-			ICollection<EndpointReference> endpointReferences)
-		{
-			foreach (var endpointReference in endpointReferences)
-			{
-				writer.WriteStartElement(elName, elNs);
-				WriteEndpointReference(writer, endpointReference);
-				writer.WriteEndElement();
-			}
-		}
+	        WriteCustomElements(writer, appService);
+            
+            writer.WriteEndElement();
+	    }
 
-		protected virtual void WriteApplicationServiceDescriptor(XmlWriter writer, ApplicationServiceDescriptor appService)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (appService == null)
-			{
-				throw new ArgumentNullException(nameof(appService));
-			}
-			writer.WriteStartElement("RoleDescriptor", Saml2MetadataNs);
-			writer.WriteAttributeString("xsi", "type", XsiNs, "fed:ApplicationServiceType");
-			writer.WriteAttributeString("xmlns", "fed", null, FedNs);
+	    protected virtual void WriteContactPerson(XmlWriter writer, ContactPerson contactPerson)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (contactPerson == null) throw new ArgumentNullException(nameof(contactPerson));
 
-			WriteWebServiceDescriptorAttributes(writer, appService);
-			WriteCustomAttributes(writer, appService);
+	        writer.WriteStartElement(Saml2MetadataConstants.Elements.ContactPerson, Saml2MetadataConstants.Namespace);
+	        writer.WriteAttributeString(Saml2MetadataConstants.Attributes.ContactType, null, ContactTypeHelpers.ToString(contactPerson.Type));
+            WriteCustomAttributes(writer, contactPerson);
 
-			WriteWebServiceDescriptorElements(writer, appService);
+	        if (IsNullOrEmpty(contactPerson.Company)) writer.WriteElementString(Saml2MetadataConstants.Elements.Company, Saml2MetadataConstants.Namespace, contactPerson.Company);
+	        if (IsNullOrEmpty(contactPerson.GivenName)) writer.WriteElementString(Saml2MetadataConstants.Elements.GivenName, Saml2MetadataConstants.Namespace, contactPerson.GivenName);
+            if (IsNullOrEmpty(contactPerson.Surname)) writer.WriteElementString(Saml2MetadataConstants.Elements.Surname, Saml2MetadataConstants.Namespace, contactPerson.Surname);
 
-			WriteEndpointReferences(writer, "ApplicationServiceEndpoint",
-				FedNs, appService.Endpoints);
-			WriteEndpointReferences(writer, "SingleSignOutNotificationEndpoint",
-				FedNs, appService.SingleSignOutEndpoints);
-			WriteEndpointReferences(writer, "PassiveRequestorEndpoint",
-				FedNs, appService.PassiveRequestorEndpoints);
-			writer.WriteEndElement();
-		}
+            foreach (var email in contactPerson.EmailAddresses) writer.WriteElementString(Saml2MetadataConstants.Elements.EmailAddress, Saml2MetadataConstants.Namespace, email);
+	        foreach (var phone in contactPerson.TelephoneNumbers) writer.WriteElementString(Saml2MetadataConstants.Elements.TelephoneNumber, Saml2MetadataConstants.Namespace, phone);
 
-		static void WriteStringElementIfPresent(XmlWriter writer, string elName,
-			string elNs, string value)
-		{
-			if (!String.IsNullOrEmpty(value))
-			{
-				writer.WriteElementString(elName, elNs, value);
-			}
-		}
+	        WriteCustomElements(writer, contactPerson);
 
-		static void WriteBase64Element(XmlWriter writer, string elName,
-			string elNs, byte[] value)
+	        writer.WriteEndElement();
+	    }
+
+	    // Extensibility points
+	    protected virtual void WriteCustomAttributes<T>(XmlWriter writer, T source) { }
+	    protected virtual void WriteCustomElements<T>(XmlWriter writer, T source) { }
+
+	    protected virtual void WriteProtocolEndpoint(XmlWriter writer, ProtocolEndpoint endpoint, string name, string ns)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (endpoint == null) throw new ArgumentNullException(nameof(endpoint));
+	        if (name == null) throw new ArgumentNullException(nameof(name));
+	        if (ns == null) throw new ArgumentNullException(nameof(ns));
+
+	        writer.WriteStartElement(name, ns);
+            
+	        writer.WriteAttributeString(Saml2MetadataConstants.Attributes.Binding, endpoint.Binding.IsAbsoluteUri ? endpoint.Binding.AbsoluteUri : endpoint.Binding.ToString());
+	        writer.WriteAttributeString(Saml2MetadataConstants.Attributes.Location, endpoint.Location.IsAbsoluteUri ? endpoint.Location.AbsoluteUri : endpoint.Location.ToString());
+
+	        if (endpoint.ResponseLocation != null)
+	        {
+	            writer.WriteAttributeString(Saml2MetadataConstants.Attributes.ResponseLocation, endpoint.ResponseLocation.IsAbsoluteUri ? endpoint.ResponseLocation.AbsoluteUri : endpoint.ResponseLocation.ToString());
+	        }
+
+            WriteCustomAttributes(writer, endpoint);
+
+            WriteCustomElements(writer, endpoint);
+	        writer.WriteEndElement();
+	    }
+        
+        protected virtual void WriteDisplayClaim(XmlWriter writer, DisplayClaim claim)
+	    {
+	        writer.WriteStartElement(WSAuthorizationConstants.Prefix, WSAuthorizationConstants.Elements.ClaimType, WSAuthorizationConstants.Namespace);
+
+	        if (IsNullOrEmpty(claim.ClaimType)) throw new MetadataSerializationException("Missing ClaimType");
+	        if (!Uri.TryCreate(claim.ClaimType, UriKind.Absolute, out _)) throw new MetadataSerializationException("Invlaud ClaimtType - must be valid URI");
+
+	        writer.WriteAttributeString(WSFederationMetadataConstants.Attributes.Uri, claim.ClaimType);
+
+	        if (claim.WriteOptionalAttribute)
+	        {
+	            writer.WriteAttributeString(WSFederationMetadataConstants.Attributes.Optional, XmlConvert.ToString(claim.Optional));
+	        }
+
+	        if (!IsNullOrEmpty(claim.DisplayName))
+	        {
+	            writer.WriteElementString(WSAuthorizationConstants.Prefix, WSAuthorizationConstants.Elements.DisplayName, WSAuthorizationConstants.Namespace, claim.DisplayName);
+	        }
+
+	        if (!IsNullOrEmpty(claim.Description))
+	        {
+	            writer.WriteElementString(WSAuthorizationConstants.Prefix, WSAuthorizationConstants.Elements.Description, WSAuthorizationConstants.Namespace, claim.Description);
+	        }
+
+	        writer.WriteEndElement();
+	    }
+
+	    protected virtual void WriteEntitiesDescriptor(XmlWriter inputWriter, EntitiesDescriptor entitiesDescriptor)
+	    {
+	        if (inputWriter == null) throw new ArgumentNullException(nameof(inputWriter));
+	        if (entitiesDescriptor == null) throw new ArgumentNullException(nameof(entitiesDescriptor));
+	        if (!entitiesDescriptor.ChildEntities.Any() && !entitiesDescriptor.ChildEntityGroups.Any()) throw new ArgumentNullException(nameof(entitiesDescriptor));
+
+	        var writer = inputWriter;
+            var entityReference = "_" + Guid.NewGuid();
+            EnvelopedSignatureWriter signatureWriter = null;
+
+	        if (entitiesDescriptor.SigningCredentials != null)
+	        {
+                signatureWriter = new EnvelopedSignatureWriter(inputWriter, entitiesDescriptor.SigningCredentials, entityReference);
+	            writer = signatureWriter;
+	        }
+
+	        writer.WriteStartElement(Saml2MetadataConstants.Elements.EntitiesDescriptor, Saml2MetadataConstants.Namespace);
+	        writer.WriteAttributeString(Saml2MetadataConstants.Attributes.Id, null, entityReference);
+
+	        foreach (var entity in entitiesDescriptor.ChildEntities)
+	        {
+	            if (!IsNullOrEmpty(entity.FederationId))
+	            {
+	                if (!StringComparer.Ordinal.Equals(entity.FederationId, entitiesDescriptor.Name))
+	                {
+	                    throw new MetadataSerializationException($"Invalid federation ID of {entity.FederationId}");
+	                }
+	            }
+	        }
+
+	        WriteStringAttributeIfPresent(writer, Saml2MetadataConstants.Attributes.EntityGroupName, null, entitiesDescriptor.Name);
+
+	        WriteCustomAttributes(writer, entitiesDescriptor);
+
+	        signatureWriter?.WriteSignature();
+
+            foreach (var childEntity in entitiesDescriptor.ChildEntities)
+	        {
+	            WriteEntityDescriptor(writer, childEntity);
+	        }
+
+	        foreach (var childEntityDescriptor in entitiesDescriptor.ChildEntityGroups)
+	        {
+	            WriteEntitiesDescriptor(writer, childEntityDescriptor);
+	        }
+
+	        WriteCustomElements(writer, entitiesDescriptor);
+
+	        writer.WriteEndElement();
+	    }
+
+        protected virtual void WriteEntityDescriptor(XmlWriter inputWriter, EntityDescriptor entityDescriptor)
+        {
+            if (inputWriter == null) throw new ArgumentNullException(nameof(inputWriter));
+            if (entityDescriptor == null) throw new ArgumentNullException(nameof(entityDescriptor));
+            if (!entityDescriptor.RoleDescriptors.Any()) throw new MetadataSerializationException("Missing RoleDescriptors");
+
+            var writer = inputWriter;
+            var entityReference = "_" + Guid.NewGuid();
+            EnvelopedSignatureWriter signatureWriter = null;
+
+            if (entityDescriptor.SigningCredentials != null)
+            {
+                signatureWriter = new EnvelopedSignatureWriter(inputWriter, entityDescriptor.SigningCredentials, entityReference);
+                writer = signatureWriter;
+            }
+
+            writer.WriteStartElement(Saml2MetadataConstants.Elements.EntityDescriptor, Saml2MetadataConstants.Namespace);
+            WriteStringAttributeIfPresent(writer, Saml2MetadataConstants.Attributes.Id, null, entityReference);
+
+            if (entityDescriptor.EntityId?.Id == null)
+            {
+                throw new MetadataSerializationException("Missing entity id");
+            }
+
+            writer.WriteAttributeString(Saml2MetadataConstants.Attributes.EntityId, null, entityDescriptor.EntityId.Id);
+            WriteStringAttributeIfPresent(writer, WSFederationMetadataConstants.Attributes.FederationId, WSFederationMetadataConstants.Namespace, entityDescriptor.FederationId);
+            WriteCustomAttributes(writer, entityDescriptor);
+
+            signatureWriter?.WriteSignature();
+            
+            foreach (var roleDescriptor in entityDescriptor.RoleDescriptors)
+            {
+                if (roleDescriptor is ServiceProviderSingleSignOnDescriptor spSsoDescriptor)
+                {
+                    WriteServiceProviderSingleSignOnDescriptor(writer, spSsoDescriptor);
+                }
+
+                if (roleDescriptor is IdentityProviderSingleSignOnDescriptor idpSsoDescriptor)
+                {
+                    WriteIdentityProviderSingleSignOnDescriptor(writer, idpSsoDescriptor);
+                }
+
+                if (roleDescriptor is ApplicationServiceDescriptor serviceDescriptor)
+                {
+                    WriteApplicationServiceDescriptor(writer, serviceDescriptor);
+                }
+
+                if (roleDescriptor is SecurityTokenServiceDescriptor secDescriptor)
+                {
+                    WriteSecurityTokenServiceDescriptor(writer, secDescriptor);
+                }
+            }
+
+            if (entityDescriptor.Organization != null)
+            {
+                WriteOrganization(writer, entityDescriptor.Organization);
+            }
+
+            foreach (var person in entityDescriptor.Contacts)
+            {
+                WriteContactPerson(writer, person);
+            }
+
+            foreach (var meta in entityDescriptor.AdditionalMetadataLocations)
+            {
+                WriteAdditionalMetadataLocation(writer, meta);
+            }
+
+            WriteCustomElements(writer, entityDescriptor);
+
+            writer.WriteEndElement();
+        }
+
+	    protected virtual void WriteIdentityProviderSingleSignOnDescriptor(XmlWriter writer, IdentityProviderSingleSignOnDescriptor descriptor)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (descriptor == null) throw new ArgumentNullException(nameof(descriptor));
+
+	        writer.WriteStartElement(Saml2MetadataConstants.Elements.IdpssoDescriptor, Saml2MetadataConstants.Namespace);
+
+	        if (descriptor.WantAuthenticationRequestsSigned)
+	        {
+	            writer.WriteAttributeString(Saml2MetadataConstants.Attributes.WantAuthenticationRequestsSigned, null, XmlConvert.ToString(descriptor.WantAuthenticationRequestsSigned));
+	        }
+
+            WriteSingleSignOnDescriptorAttributes(writer, descriptor);
+            WriteCustomAttributes(writer, descriptor);
+
+	        WriteSingleSignOnDescriptorElements(writer, descriptor);
+
+	        if (!descriptor.SingleSignOnServices.Any()) throw new MetadataSerializationException("Missing single sign on services");
+
+	        foreach (var endpoint in descriptor.SingleSignOnServices)
+	        {
+	            if (endpoint.ResponseLocation != null) throw new MetadataSerializationException("ResponseLocation present on SingleSignOnService");
+	            WriteProtocolEndpoint(writer, endpoint, Saml2MetadataConstants.Elements.SingleSignOnService, Saml2MetadataConstants.Namespace);
+	        }
+	        
+	        foreach (var attribute in descriptor.SupportedAttributes)
+	        {
+	            WriteAttribute(writer, attribute);
+	        }
+
+	        WriteCustomElements(writer, descriptor);
+
+	        writer.WriteEndElement();
+	    }
+
+	    protected virtual void WriteIndexedProtocolEndpoint(XmlWriter writer, IndexedEndpoint endpoint, string name, string ns)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (endpoint == null) throw new ArgumentNullException(nameof(endpoint));
+	        if (name == null) throw new ArgumentNullException(nameof(name));
+	        if (ns == null) throw new ArgumentNullException(nameof(ns));
+
+	        writer.WriteStartElement(name, ns);
+
+            if (endpoint.Binding == null) throw new MetadataSerializationException($"Endpoint {name} missing binding");
+	        writer.WriteAttributeString(Saml2MetadataConstants.Attributes.Binding, null,
+	            endpoint.Binding.IsAbsoluteUri ? endpoint.Binding.AbsoluteUri : endpoint.Binding.ToString());
+
+            if (endpoint.Location == null) throw new MetadataSerializationException($"Endpoint {name} missing location");
+	        writer.WriteAttributeString(Saml2MetadataConstants.Attributes.Location, null,
+	            endpoint.Location.IsAbsoluteUri ? endpoint.Location.AbsoluteUri : endpoint.Location.ToString());
+            
+            if (endpoint.Index < 0) throw new MetadataSerializationException($"Endpoint {name} index is less than zero");
+	        writer.WriteAttributeString(Saml2MetadataConstants.Attributes.EndpointIndex, null, endpoint.Index.ToString(CultureInfo.InvariantCulture));
+
+            WriteStringAttributeIfPresent(writer, Saml2MetadataConstants.Attributes.ResponseLocation, null,
+	            endpoint.ResponseLocation.IsAbsoluteUri ? endpoint.ResponseLocation.AbsoluteUri : endpoint.ResponseLocation.ToString());
+
+	        WriteBooleanAttribute(writer, Saml2MetadataConstants.Attributes.EndpointIsDefault, null, endpoint.IsDefault);
+
+	        WriteCustomAttributes(writer, endpoint);
+            WriteCustomElements(writer, endpoint);
+
+	        writer.WriteEndElement();
+	    }
+
+	    protected virtual void WriteKeyDescriptor(XmlWriter writer, KeyDescriptor keyDescriptor)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (keyDescriptor == null) throw new ArgumentNullException(nameof(keyDescriptor));
+
+	        writer.WriteStartElement(Saml2MetadataConstants.Elements.KeyDescriptor, Saml2MetadataConstants.Namespace);
+
+	        if (keyDescriptor.Use == KeyType.Encryption || keyDescriptor.Use == KeyType.Signing)
+	        {
+	            writer.WriteAttributeString(Saml2MetadataConstants.Attributes.Use, null, keyDescriptor.Use.ToString().ToLowerInvariant());
+            }
+            
+	        WriteCustomAttributes(writer, keyDescriptor);
+
+	        if (keyDescriptor.KeyInfo == null) throw new MetadataSerializationException("Null key info");
+
+	        SecurityTokenSerializer.WriteKeyIdentifier(writer, keyDescriptor.KeyInfo);
+
+	        if (keyDescriptor.EncryptionMethods?.Any() == true)
+	        {
+	            foreach (var encryptionMethod in keyDescriptor.EncryptionMethods)
+	            {
+	                if (encryptionMethod.Algorithm == null) throw new MetadataSerializationException("Encryption algorithm missing algorithm");
+                    if (!encryptionMethod.Algorithm.IsAbsoluteUri) throw new MetadataSerializationException("Encryption algorithm not using absolute ");
+
+	                writer.WriteStartElement(Saml2MetadataConstants.Elements.EncryptionMethod, Saml2MetadataConstants.Namespace);
+	                writer.WriteAttributeString(Saml2MetadataConstants.Attributes.Algorithm, null, encryptionMethod.Algorithm.AbsoluteUri);
+	                writer.WriteEndElement();
+                }
+            }
+            
+	        WriteCustomElements(writer, keyDescriptor);
+
+	        writer.WriteEndElement();
+	    }
+
+	    protected virtual void WriteLocalizedName(XmlWriter writer, LocalizedName name, string elementName, string elementNamespace)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (name == null) throw new ArgumentNullException(nameof(name));
+	        if (elementName == null) throw new ArgumentNullException(nameof(elementName));
+	        if (elementNamespace == null) throw new ArgumentNullException(nameof(elementNamespace));
+
+	        writer.WriteStartElement(elementName, elementNamespace);
+            writer.WriteAttributeString("xml", "lang", LanguageNamespaceUri, name.Language.Name);
+            WriteCustomAttributes(writer, name);
+	        writer.WriteString(name.Name);
+	        WriteCustomElements(writer, name);
+	        writer.WriteEndElement();
+	    }
+
+	    protected virtual void WriteLocalizedUri(XmlWriter writer, LocalizedUri uri, string elementName, string elementNamespace)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (uri == null) throw new ArgumentNullException(nameof(uri));
+	        if (elementName == null) throw new ArgumentNullException(nameof(elementName));
+	        if (elementNamespace == null) throw new ArgumentNullException(nameof(elementNamespace));
+
+	        writer.WriteStartElement(elementName, elementNamespace);
+	        writer.WriteAttributeString("xml", "lang", LanguageNamespaceUri, uri.Language.Name);
+	        WriteCustomAttributes(writer, uri);
+	        writer.WriteString(uri.Uri.IsAbsoluteUri ? uri.Uri.AbsoluteUri : uri.Uri.ToString());
+            WriteCustomElements(writer, uri);
+	        writer.WriteEndElement();
+	    }
+
+	    public void WriteMetadata(Stream stream, MetadataBase metadata)
+	    {
+	        if (stream == null) throw new ArgumentNullException(nameof(stream));
+	        if (metadata == null) throw new ArgumentNullException(nameof(metadata));
+
+	        using (var writer = XmlDictionaryWriter.CreateTextWriter(stream, Encoding.UTF8, false))
+	        {
+	            WriteMetadata(writer, metadata);
+	        }
+	    }
+
+	    public void WriteMetadata(XmlWriter writer, MetadataBase metadata)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (metadata == null) throw new ArgumentNullException(nameof(metadata));
+
+	        WriteMetadataCore(writer, metadata);
+	    }
+
+	    protected virtual void WriteMetadataCore(XmlWriter writer, MetadataBase metadata)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (metadata == null) throw new ArgumentNullException(nameof(metadata));
+
+	        if (metadata is EntitiesDescriptor entities)
+	        {
+	            WriteEntitiesDescriptor(writer, entities);
+	        }
+	        else if (metadata is EntityDescriptor entity)
+	        {
+	            WriteEntityDescriptor(writer, entity);
+	        }
+	        else
+	        {
+	            throw new MetadataSerializationException("Unsupported metadata entity");
+	        }
+	    }
+
+	    protected virtual void WriteOrganization(XmlWriter writer, Organization organization)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (organization == null) throw new ArgumentNullException(nameof(organization));
+	        if (organization.Names.Count == 0) throw new MetadataSerializationException("An organisation must have at least one Name property");
+	        if (organization.DisplayNames.Count == 0) throw new MetadataSerializationException("An organisation must have at least one DisplayName property");
+	        if (organization.Urls.Count == 0) throw new MetadataSerializationException("An organisation must have at least one Url property");
+
+	        writer.WriteStartElement(Saml2MetadataConstants.Elements.Organization, Saml2MetadataConstants.Namespace);
+
+	        foreach (var name in organization.Names)
+                WriteLocalizedName(writer, name, Saml2MetadataConstants.Elements.OrganizationName, Saml2MetadataConstants.Namespace);
+	        
+	        foreach (var displayName in organization.DisplayNames)
+	            WriteLocalizedName(writer, displayName, Saml2MetadataConstants.Elements.OrganizationDisplayName, Saml2MetadataConstants.Namespace);
+            
+	        foreach (var uri in organization.Urls)
+	            WriteLocalizedUri(writer, uri, Saml2MetadataConstants.Elements.OrganizationUrl, Saml2MetadataConstants.Namespace);
+	        
+            WriteCustomAttributes(writer, organization);
+            WriteCustomElements(writer, organization);
+	        writer.WriteEndElement();
+	    }
+
+	    protected virtual void WriteRoleDescriptorAttributes(XmlWriter writer, RoleDescriptor descriptor)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (descriptor == null) throw new ArgumentNullException(nameof(descriptor));
+	        if (descriptor.ProtocolsSupported?.Any() != true) throw new ArgumentNullException(nameof(descriptor.ProtocolsSupported));
+
+	        if (descriptor.ValidUntil.HasValue && descriptor.ValidUntil != DateTime.MaxValue)
+	        {
+	            writer.WriteAttributeString(Saml2MetadataConstants.Attributes.ValidUntil, null, descriptor.ValidUntil.Value.ToString("s", CultureInfo.InvariantCulture));
+	        }
+
+	        if (descriptor.ErrorUrl != null)
+	        {
+	            writer.WriteAttributeString(Saml2MetadataConstants.Attributes.ErrorUrl, null, descriptor.ErrorUrl.IsAbsoluteUri ? descriptor.ErrorUrl.AbsoluteUri : descriptor.ErrorUrl.ToString());
+	        }
+
+
+            WriteUriAttributeIfPresent(writer, Saml2MetadataConstants.Attributes.ErrorUrl, null, descriptor.ErrorUrl);
+
+	        var sb = new StringBuilder();
+	        foreach (var protocol in descriptor.ProtocolsSupported)
+	        {
+	            sb.AppendFormat("{0} ", protocol.IsAbsoluteUri ? protocol.AbsoluteUri : protocol.ToString());
+	        }
+
+	        writer.WriteAttributeString(Saml2MetadataConstants.Attributes.ProtocolsSupported, null, sb.ToString().Trim());
+
+	        WriteCustomAttributes(writer, descriptor);
+	    }
+
+	    protected virtual void WriteRoleDescriptorElements(XmlWriter writer, RoleDescriptor descriptor)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (descriptor == null) throw new ArgumentNullException(nameof(descriptor));
+
+	        if (descriptor.Organization != null)
+	        {
+	            WriteOrganization(writer, descriptor.Organization);
+	        }
+
+            foreach (var key in descriptor.Keys)
+	        {
+	            WriteKeyDescriptor(writer, key);
+	        }
+
+	        foreach (var contact in descriptor.Contacts)
+	        {
+	            WriteContactPerson(writer, contact);
+	        }
+
+	        WriteCustomElements(writer, descriptor);
+        }
+
+	    protected virtual void WriteSecurityTokenServiceDescriptor(XmlWriter writer, SecurityTokenServiceDescriptor descriptor)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (descriptor == null) throw new ArgumentNullException(nameof(descriptor));
+	        if (descriptor.SecurityTokenServiceEndpoints.Count == 0) throw new MetadataSerializationException("Missing SecurityTokenServiceEndpoints");
+
+            writer.WriteStartElement(Saml2MetadataConstants.Elements.RoleDescriptor, Saml2MetadataConstants.Namespace);
+	        writer.WriteAttributeString("xsi", "type", XmlSchema.InstanceNamespace, FederationMetadataConstants.Prefix + ":" + FederationMetadataConstants.Elements.SecurityTokenServiceType);
+            writer.WriteAttributeString("xmlns", FederationMetadataConstants.Prefix, null, FederationMetadataConstants.Namespace);
+            WriteWebServiceDescriptorAttributes(writer, descriptor);
+            WriteCustomAttributes(writer, descriptor);
+
+	        WriteWebServiceDescriptorElements(writer, descriptor);
+
+            WriteEndpointReferences(writer, FederationMetadataConstants.Elements.SecurityTokenServiceEndpoint, FederationMetadataConstants.Namespace, descriptor.SecurityTokenServiceEndpoints);
+	        WriteEndpointReferences(writer, FederationMetadataConstants.Elements.PassiveRequestorEndpoint, FederationMetadataConstants.Namespace, descriptor.PassiveRequestorEndpoints);
+
+	        WriteCustomElements(writer, descriptor);
+
+	        writer.WriteEndElement();
+	    }
+
+	    protected virtual void WriteServiceProviderSingleSignOnDescriptor(XmlWriter writer, ServiceProviderSingleSignOnDescriptor descriptor)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (descriptor == null) throw new ArgumentNullException(nameof(descriptor));
+
+            writer.WriteStartElement(Saml2MetadataConstants.Elements.SpssoDescriptor, Saml2MetadataConstants.Namespace);
+
+	        if (descriptor.AuthenticationRequestsSigned)
+	            WriteBooleanAttribute(writer, Saml2MetadataConstants.Attributes.AuthenticationRequestsSigned, null, descriptor.AuthenticationRequestsSigned);
+	        if (descriptor.WantAssertionsSigned)
+	            WriteBooleanAttribute(writer, Saml2MetadataConstants.Attributes.WantAssertionsSigned, null, descriptor.WantAssertionsSigned);
+
+	        WriteSingleSignOnDescriptorAttributes(writer, descriptor);
+	        WriteCustomAttributes(writer, descriptor);
+
+            WriteSingleSignOnDescriptorElements(writer, descriptor);
+	        if (descriptor.AssertionConsumerServices.Count == 0)throw new MetadataSerializationException("Missing AssertionConsumerServices");
+
+	        foreach (var ep in descriptor.AssertionConsumerServices.Values)
+	        {
+	            WriteIndexedProtocolEndpoint(writer, ep, Saml2MetadataConstants.Elements.AssertionConsumerService, Saml2MetadataConstants.Namespace);
+	        }
+
+	        WriteCustomElements(writer, descriptor);
+	        writer.WriteEndElement();
+        }
+
+	    protected virtual void WriteSingleSignOnDescriptorAttributes(XmlWriter writer, SingleSignOnDescriptor singleSignOnDescriptor)
+	    {
+	        WriteRoleDescriptorAttributes(writer, singleSignOnDescriptor);
+	        WriteCustomAttributes(writer, singleSignOnDescriptor);
+	    }
+
+        protected virtual void WriteSingleSignOnDescriptorElements(XmlWriter writer, SingleSignOnDescriptor singleSignOnDescriptor)
+        {
+            if (writer == null) throw new ArgumentNullException(nameof(writer));
+            if (singleSignOnDescriptor == null) throw new ArgumentNullException(nameof(singleSignOnDescriptor));
+
+            WriteRoleDescriptorElements(writer, singleSignOnDescriptor);
+
+            if (singleSignOnDescriptor.ArtifactResolutionServices != null && singleSignOnDescriptor.ArtifactResolutionServices.Count > 0)
+            {
+                foreach (var ep in singleSignOnDescriptor.ArtifactResolutionServices.Values)
+                {
+                    if (ep.ResponseLocation != null) throw new MetadataSerializationException("An artifact resoluce service has a null ResponseLocation");
+                    WriteIndexedProtocolEndpoint(writer, ep, Saml2MetadataConstants.Elements.ArtifactResolutionService, Saml2MetadataConstants.Namespace);
+                }
+            }
+
+            if (singleSignOnDescriptor.SingleLogoutServices != null && singleSignOnDescriptor.SingleLogoutServices.Count > 0)
+            {
+                foreach (var endpoint in singleSignOnDescriptor.SingleLogoutServices)
+                {
+                    WriteProtocolEndpoint(writer, endpoint, Saml2MetadataConstants.Elements.SingleLogoutService, Saml2MetadataConstants.Namespace);
+                }
+            }
+
+            if (singleSignOnDescriptor.NameIdentifierFormats != null && singleSignOnDescriptor.NameIdentifierFormats.Count > 0)
+            {
+                foreach (var nameId in singleSignOnDescriptor.NameIdentifierFormats)
+                {
+                    if (!nameId.Uri.IsAbsoluteUri) throw new MetadataSerializationException("NameIdentifierFormat is not absolute URI");
+                    
+                    writer.WriteStartElement(Saml2MetadataConstants.Elements.NameIdFormat, Saml2MetadataConstants.Namespace);
+                    writer.WriteString(nameId.Uri.AbsoluteUri);
+                    writer.WriteEndElement();
+                }
+            }
+
+            WriteCustomElements(writer, singleSignOnDescriptor);
+        }
+
+	    protected virtual void WriteWebServiceDescriptorAttributes(XmlWriter writer, WebServiceDescriptor descriptor)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (descriptor == null) throw new ArgumentNullException(nameof(descriptor));
+
+	        WriteRoleDescriptorAttributes(writer, descriptor);
+	        WriteStringAttributeIfPresent(writer, Saml2MetadataConstants.Attributes.ServiceDisplayName, null, descriptor.ServiceDisplayName);
+	        WriteStringAttributeIfPresent(writer, Saml2MetadataConstants.Attributes.ServiceDescription, null, descriptor.ServiceDescription);
+
+	        WriteCustomAttributes(writer, descriptor);
+	    }
+
+        protected virtual void WriteWebServiceDescriptorElements(XmlWriter writer, WebServiceDescriptor descriptor)
+        {
+            if (writer == null) throw new ArgumentNullException(nameof(writer));
+            if (descriptor == null) throw new ArgumentNullException(nameof(descriptor));
+
+            WriteRoleDescriptorElements(writer, descriptor);
+
+            if (descriptor.TokenTypesOffered.Count > 0)
+            {
+                writer.WriteStartElement(FederationMetadataConstants.Elements.TokenTypesOffered, FederationMetadataConstants.Namespace);
+                foreach (var tokenType in descriptor.TokenTypesOffered)
+                {
+                    writer.WriteStartElement(WSFederationMetadataConstants.Elements.TokenType, WSFederationMetadataConstants.Namespace);
+                    if (!tokenType.IsAbsoluteUri) throw new MetadataSerializationException("Token type is not absolute URI");
+
+                    writer.WriteAttributeString(WSFederationMetadataConstants.Attributes.Uri, tokenType.AbsoluteUri);
+                    writer.WriteEndElement();
+                }
+
+                writer.WriteEndElement();
+            }
+
+            if (descriptor.ClaimTypesOffered.Count > 0)
+            {
+                writer.WriteStartElement(FederationMetadataConstants.Elements.ClaimTypesOffered, FederationMetadataConstants.Namespace);
+                foreach (var claim in descriptor.ClaimTypesOffered)
+                {
+                    WriteDisplayClaim(writer, claim);
+                }
+
+                writer.WriteEndElement();
+            }
+
+            if (descriptor.ClaimTypesRequested.Count > 0)
+            {
+                writer.WriteStartElement(FederationMetadataConstants.Elements.ClaimTypesRequested, FederationMetadataConstants.Namespace);
+                foreach (var claim in descriptor.ClaimTypesRequested)
+                {
+                    WriteDisplayClaim(writer, claim);
+                }
+
+                writer.WriteEndElement();
+            }
+
+            if (descriptor.TargetScopes.Count > 0)
+            {
+                writer.WriteStartElement(FederationMetadataConstants.Elements.TargetScopes, FederationMetadataConstants.Namespace);
+                foreach (var address in descriptor.TargetScopes)
+                {
+                    WriteEndpointReference(writer, address);
+                }
+
+                writer.WriteEndElement();
+            }
+
+            WriteCustomElements(writer, descriptor);
+        }
+
+        protected virtual void WriteAttribute(XmlWriter writer, Saml2Attribute attribute)
+	    {
+	        if (writer == null) throw new ArgumentNullException(nameof(writer));
+	        if (attribute == null) throw new ArgumentNullException(nameof(attribute));
+
+	        writer.WriteStartElement(Saml2Constants.Elements.Attribute, Saml2Constants.Namespace);
+
+	        writer.WriteAttributeString(Saml2Constants.Attributes.Name, attribute.Name);
+
+	        if (null != attribute.NameFormat)
+	        {
+	            writer.WriteAttributeString(Saml2Constants.Attributes.NameFormat, attribute.NameFormat.AbsoluteUri);
+	        }
+
+	        if (null != attribute.FriendlyName)
+	        {
+	            writer.WriteAttributeString(Saml2Constants.Attributes.FriendlyName, attribute.FriendlyName);
+	        }
+
+	        foreach (var value in attribute.Values)
+	        {
+	            writer.WriteStartElement(Saml2Constants.Elements.AttributeValue, Saml2Constants.Namespace);
+
+	            if (null == value)
+	            {
+	                writer.WriteAttributeString("nil", XmlSchema.InstanceNamespace, XmlConvert.ToString(true));
+	            }
+	            else if (value.Length > 0)
+	            {
+	                writer.WriteString(value);
+	            }
+
+	            writer.WriteEndElement();
+	        }
+
+	        writer.WriteEndElement();
+        }
+
+        /* Used extensions */
+        // EndpointReference.WriteTo(XmlWriter writer)
+	    protected virtual void WriteEndpointReference(XmlWriter writer, EndpointReference endpointReference)
+	    {
+	        writer.WriteStartElement(WSAddressing10Constants.Prefix, WSAddressing10Constants.Elements.EndpointReference, WSAddressing10Constants.NamespaceUri);
+	        WriteCustomAttributes(writer, endpointReference);
+
+	        writer.WriteStartElement(WSAddressing10Constants.Prefix, WSAddressing10Constants.Elements.Address, WSAddressing10Constants.NamespaceUri);
+	        writer.WriteString(endpointReference.Uri.AbsoluteUri);
+	        writer.WriteEndElement();
+
+	        foreach (var element in endpointReference.Details)
+	        {
+	            element.WriteTo(writer);
+	        }
+
+	        WriteCustomElements(writer, endpointReference);
+
+	        writer.WriteEndElement();
+	    }
+
+	    protected virtual void WriteEndpointReferences(XmlWriter writer, string elementName, string elementNamespace, IEnumerable<EndpointReference> endpoints)
+	    {
+	        foreach (var endpointReference in endpoints)
+	        {
+	            writer.WriteStartElement(elementName, elementNamespace);
+	            WriteEndpointReference(writer, endpointReference);
+	            writer.WriteEndElement();
+	        }
+	    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		static void WriteBase64Element(XmlWriter writer, string elName, string elNs, byte[] value)
 		{
 			if (value != null)
 			{
@@ -169,151 +762,38 @@ namespace ScottBrady91.IdentityModel.Metadata
 			}
 		}
 
-		static void WriteStringAttributeIfPresent(XmlWriter writer, string attName,
-			string attNs, string value)
+	    private static void WriteStringAttributeIfPresent(XmlWriter writer, string attName, string attNs, string value)
 		{
-			if (!String.IsNullOrEmpty(value))
-			{
-				writer.WriteAttributeString(attName, attNs, value);
-			}
+			if (!IsNullOrEmpty(value)) writer.WriteAttributeString(attName, attNs, value);
 		}
 
-		static void WriteUriAttributeIfPresent(XmlWriter writer, string attName,
-			string attNs, Uri value)
+		private static void WriteUriAttributeIfPresent(XmlWriter writer, string attName, string attNs, Uri value)
 		{
-			if (value != null)
-			{
-				writer.WriteAttributeString(attName, attNs, value.ToString());
-			}
+			if (value != null) writer.WriteAttributeString(attName, attNs, value.ToString());
 		}
 
-		static void WriteBooleanAttribute(XmlWriter writer, string attName,
-			string attNs, bool? value)
+		private static void WriteBooleanAttribute(XmlWriter writer, string attName, string attNs, bool? value)
 		{
 			if (value.HasValue)
 			{
-				writer.WriteAttributeString(attName, attNs, value.Value ? "true" : "false");
+				writer.WriteAttributeString(attName, attNs, XmlConvert.ToString(value.Value));
 			}
 		}
 
-		static void WriteStringElements(XmlWriter writer, string elName, string elNs,
-			IEnumerable<string> values)
+		private static void WriteStringElements(XmlWriter writer, string elementName, string elementNamespace, IEnumerable<string> values)
 		{
-			foreach (string value in values)
-			{
-				writer.WriteElementString(elName, elNs, value);
-			}
+			foreach (var value in values) writer.WriteElementString(elementName, elementNamespace, value);
 		}
 
-		protected virtual void WriteContactPerson(XmlWriter writer, ContactPerson contactPerson)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (contactPerson == null)
-			{
-				throw new ArgumentNullException(nameof(contactPerson));
-			}
-
-			writer.WriteStartElement("ContactPerson", Saml2MetadataNs);
-			writer.WriteAttributeString("contactType", ContactTypeHelpers.ToString(contactPerson.Type));
-			WriteCustomAttributes(writer, contactPerson);
-			WriteWrappedElements(writer, null, "Extensions", Saml2MetadataNs,
-				contactPerson.Extensions);
-			WriteStringElementIfPresent(writer, "Company", Saml2MetadataNs, contactPerson.Company);
-			WriteStringElementIfPresent(writer, "GivenName", Saml2MetadataNs, contactPerson.GivenName);
-			WriteStringElementIfPresent(writer, "SurName", Saml2MetadataNs, contactPerson.Surname);
-			WriteStringElements(writer, "EmailAddress", Saml2MetadataNs, contactPerson.EmailAddresses);
-			WriteStringElements(writer, "TelephoneNumber", Saml2MetadataNs, contactPerson.TelephoneNumbers);
-			WriteCustomElements(writer, contactPerson);
-
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteCustomAttributes<T>(XmlWriter writer, T source)
-		{
-		}
-
-		protected virtual void WriteCustomElements<T>(XmlWriter writer, T source)
-		{
-		}
-
-		protected virtual void WriteEndpointAttributes(XmlWriter writer, ProtocolEndpoint endpoint)
-		{
-			writer.WriteAttributeString("Binding", endpoint.Binding.ToString());
-			writer.WriteAttributeString("Location", endpoint.Location.ToString());
-			WriteUriAttributeIfPresent(writer, "ResponseLocation", null, endpoint.ResponseLocation);
-			WriteCustomAttributes(writer, endpoint);
-		}
-
-		protected virtual void WriteEndpoint(XmlWriter writer, ProtocolEndpoint endpoint,
-			string name, string ns)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (endpoint == null)
-			{
-				throw new ArgumentNullException(nameof(endpoint));
-			}
-			if (name == null)
-			{
-				throw new ArgumentNullException(nameof(name));
-			}
-			if (ns == null)
-			{
-				throw new ArgumentNullException(nameof(ns));
-			}
-			writer.WriteStartElement(name, ns);
-			WriteEndpointAttributes(writer, endpoint);
-			WriteCustomAttributes(writer, endpoint);
-			WriteCustomElements(writer, endpoint);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteIndexedEndpoint(XmlWriter writer, IndexedEndpoint endpoint,
-			string name, string ns)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (endpoint == null)
-			{
-				throw new ArgumentNullException(nameof(endpoint));
-			}
-			if (name == null)
-			{
-				throw new ArgumentNullException(nameof(name));
-			}
-			if (ns == null)
-			{
-				throw new ArgumentNullException(nameof(ns));
-			}
-			writer.WriteStartElement(name, ns);
-			WriteEndpointAttributes(writer, endpoint);
-			WriteBooleanAttribute(writer, "isDefault", null, endpoint.IsDefault);
-			writer.WriteAttributeString("index", endpoint.Index.ToString());
-			WriteCustomAttributes(writer, endpoint);
-			WriteCustomElements(writer, endpoint);
-			writer.WriteEndElement();
-		}
-
+		
 		protected virtual void WriteEndpoints(XmlWriter writer,
 			IEnumerable<ProtocolEndpoint> endpoints, string name, string ns) =>
 				WriteCollection(writer, endpoints, (writer_, endpoint) =>
-					WriteEndpoint(writer_, endpoint, name, ns));
-
-		protected virtual void WriteIndexedEndpoints(XmlWriter writer,
-			IEnumerable<IndexedEndpoint> endpoints, string name, string ns) =>
-				WriteCollection(writer, endpoints, (writer_, endpoint) =>
-					WriteIndexedEndpoint(writer_, endpoint, name, ns));
+					WriteProtocolEndpoint(writer_, endpoint, name, ns));
 
 		static void WriteStringElement(XmlWriter writer, string elName, string elNs, string value)
 		{
-			if (!String.IsNullOrEmpty(value))
+			if (!IsNullOrEmpty(value))
 			{
 				writer.WriteStartElement(elName, elNs);
 				writer.WriteString(value);
@@ -342,31 +822,6 @@ namespace ScottBrady91.IdentityModel.Metadata
 			}
 
 			writer.WriteStartElement("EncryptionMethod", XEncNs);
-			writer.WriteAttributeString("Algorithm", method.Algorithm.ToString());
-			WriteCustomAttributes(writer, method);
-
-			if (method.KeySize != 0)
-			{
-				WriteXEncKeySize(writer, method.KeySize);
-			}
-			WriteBase64Element(writer, "OAEPparams", XEncNs, method.OAEPparams);
-
-			WriteCustomElements(writer, method);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteEncryptionMethod(XmlWriter writer, EncryptionMethod method)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (method == null)
-			{
-				throw new ArgumentNullException(nameof(method));
-			}
-
-			writer.WriteStartElement("EncryptionMethod", Saml2MetadataNs);
 			writer.WriteAttributeString("Algorithm", method.Algorithm.ToString());
 			WriteCustomAttributes(writer, method);
 
@@ -501,9 +956,23 @@ namespace ScottBrady91.IdentityModel.Metadata
 			}
 			WriteCustomElements(writer, keyValue);
 			writer.WriteEndElement();
-		}
+	    }
 
-		protected virtual void WriteRetrievalMethod(XmlWriter writer, RetrievalMethod method)
+	    static void WriteWrappedElements(XmlWriter writer, string wrapPrefix,
+	        string wrapName, string wrapNs, IEnumerable<XmlElement> elts)
+	    {
+	        if (elts.Any())
+	        {
+	            writer.WriteStartElement(wrapPrefix, wrapName, wrapNs);
+	            foreach (var elt in elts)
+	            {
+	                elt.WriteTo(writer);
+	            }
+	            writer.WriteEndElement();
+	        }
+	    }
+
+        protected virtual void WriteRetrievalMethod(XmlWriter writer, RetrievalMethod method)
 		{
 			if (writer == null)
 			{
@@ -584,7 +1053,9 @@ namespace ScottBrady91.IdentityModel.Metadata
 			{
 				WriteBase64Element(writer, "X509SKI", DSigNs, data.SKI);
 			}
-			WriteStringElementIfPresent(writer, "X509SubjectName", DSigNs, data.SubjectName);
+
+            if (!IsNullOrEmpty(data.SubjectName)) writer.WriteElementString("X509SubjectName", DSigNs, data.SubjectName);
+
 			foreach (var cert in data.Certificates)
 			{
 				WriteBase64Element(writer, "X509Certificate", DSigNs, cert.GetRawCertData());
@@ -808,7 +1279,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 				throw new ArgumentNullException(nameof(value));
 			}
 
-			if (!String.IsNullOrEmpty(value.Value) && value.StructuredValue != null)
+			if (!IsNullOrEmpty(value.Value) && value.StructuredValue != null)
 			{
 				throw new MetadataSerializationException(
 					"Invalid claim value that has both Value and StructuredValue properties set");
@@ -833,377 +1304,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 				writer.WriteEndElement();
 			}
 		}
-
-		protected virtual void WriteCompareConstraint(XmlWriter writer,
-			ConstrainedValue.CompareConstraint constraint)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (constraint == null)
-			{
-				throw new ArgumentNullException(nameof(constraint));
-			}
-
-			string elName;
-			switch (constraint.CompareOp)
-			{
-				case ConstrainedValue.CompareConstraint.CompareOperator.Lt:
-					elName = "ValueLessThan";
-					break;
-				case ConstrainedValue.CompareConstraint.CompareOperator.Lte:
-					elName = "ValueLessThanOrEqual";
-					break;
-				case ConstrainedValue.CompareConstraint.CompareOperator.Gt:
-					elName = "ValueGreaterThan";
-					break;
-				case ConstrainedValue.CompareConstraint.CompareOperator.Gte:
-					elName = "ValueGreaterThanOrEqual";
-					break;
-				default:
-					throw new MetadataSerializationException(
-						$"Unknown constrained value compare operator '{constraint.CompareOp}'");
-			}
-
-			writer.WriteStartElement(elName, AuthNs);
-			WriteCustomAttributes(writer, constraint);
-			WriteClaimValue(writer, constraint.Value);
-			WriteCustomElements(writer, constraint);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteListContraint(XmlWriter writer,
-			ConstrainedValue.ListConstraint constraint)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (constraint == null)
-			{
-				throw new ArgumentNullException(nameof(constraint));
-			}
-
-			writer.WriteStartElement("ValueOneOf", AuthNs);
-			WriteCustomAttributes(writer, constraint);
-			foreach (var value in constraint.Values)
-			{
-				WriteClaimValue(writer, value);
-			}
-			WriteCustomElements(writer, constraint);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteRangeConstraint(XmlWriter writer,
-			ConstrainedValue.RangeConstraint constraint)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (constraint == null)
-			{
-				throw new ArgumentNullException(nameof(constraint));
-			}
-
-			writer.WriteStartElement("ValueInRange", AuthNs);
-			WriteCustomAttributes(writer, constraint);
-			if (constraint.UpperBound != null)
-			{
-				writer.WriteStartElement("ValueUpperBound", AuthNs);
-				WriteClaimValue(writer, constraint.UpperBound);
-				writer.WriteEndElement();
-			}
-			if (constraint.LowerBound != null)
-			{
-				writer.WriteStartElement("ValueLowerBound", AuthNs);
-				WriteClaimValue(writer, constraint.LowerBound);
-				writer.WriteEndElement();
-			}
-			WriteCustomElements(writer, constraint);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteListConstraint(XmlWriter writer,
-			ConstrainedValue.ListConstraint constraint)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (constraint == null)
-			{
-				throw new ArgumentNullException(nameof(constraint));
-			}
-
-			writer.WriteStartElement("ValueOneOf", AuthNs);
-			WriteCustomAttributes(writer, constraint);
-			foreach (var value in constraint.Values)
-			{
-				WriteClaimValue(writer, value);
-			}
-			WriteCustomElements(writer, constraint);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteConstrainedValue(XmlWriter writer, ConstrainedValue value)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (value == null)
-			{
-				throw new ArgumentNullException(nameof(value));
-			}
-
-			writer.WriteStartElement("ConstrainedValue", AuthNs);
-			WriteBooleanAttribute(writer, "AssertConstraint", null, value.AssertConstraint);
-			WriteCustomAttributes(writer, value);
-			foreach (var constraint in value.Constraints)
-			{
-				if (constraint is ConstrainedValue.CompareConstraint cc)
-				{
-					WriteCompareConstraint(writer, cc);
-				}
-				else if (constraint is ConstrainedValue.ListConstraint lc)
-				{
-					WriteListConstraint(writer, lc);
-				}
-				else if (constraint is ConstrainedValue.RangeConstraint rc)
-				{
-					WriteRangeConstraint(writer, rc);
-				}
-				else
-				{
-					throw new MetadataSerializationException(
-						$"Unknown constraint type '{constraint.GetType()}'");
-				}
-			}
-			WriteCustomElements(writer, value);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteDisplayClaim(XmlWriter writer, DisplayClaim claim)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (claim == null)
-			{
-				throw new ArgumentNullException(nameof(claim));
-			}
-
-			writer.WriteStartElement("ClaimType", AuthNs);
-			writer.WriteAttributeString("Uri", claim.ClaimType);
-			WriteBooleanAttribute(writer, "Optional", null, claim.Optional);
-			WriteCustomAttributes(writer, claim);
-
-			WriteStringElement(writer, "DisplayName", AuthNs, claim.DisplayName);
-			WriteStringElement(writer, "Description", AuthNs, claim.Description);
-			WriteStringElement(writer, "DisplayValue", AuthNs, claim.DisplayValue);
-			WriteStringElement(writer, "Value", AuthNs, claim.Value);
-			if (claim.StructuredValue != null)
-			{
-				writer.WriteStartElement("StructuredValue", AuthNs);
-				foreach (var elt in claim.StructuredValue)
-				{
-					elt.WriteTo(writer);
-				}
-				writer.WriteEndElement();
-			}
-			if (claim.EncryptedValue != null)
-			{
-				WriteEncryptedValue(writer, claim.EncryptedValue);
-			}
-			if (claim.ConstrainedValue != null)
-			{
-				WriteConstrainedValue(writer, claim.ConstrainedValue);
-			}
-			WriteCustomElements(writer, claim);
-			writer.WriteEndElement();
-		}
         
-		protected virtual void WriteEntitiesDescriptor(XmlWriter writer, EntitiesDescriptor entitiesDescriptor)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (entitiesDescriptor == null)
-			{
-				throw new ArgumentNullException(nameof(entitiesDescriptor));
-			}
-
-			EnvelopedSignatureWriter signatureWriter = null;
-			if (entitiesDescriptor.SigningCredentials != null)
-			{
-				string referenceId = Guid.NewGuid().ToString("N");
-				signatureWriter = new EnvelopedSignatureWriter(writer,
-					entitiesDescriptor.SigningCredentials, referenceId);
-				writer = signatureWriter;
-			}
-
-			writer.WriteStartElement("EntitiesDescriptor", Saml2MetadataNs);
-			WriteStringAttributeIfPresent(writer, "ID", null, entitiesDescriptor.Id);
-			WriteStringAttributeIfPresent(writer, "Name", null, entitiesDescriptor.Name);
-			WriteCustomAttributes(writer, entitiesDescriptor);
-
-			if (signatureWriter != null)
-			{
-				signatureWriter.WriteSignature();
-			}
-
-			WriteWrappedElements(writer, null, "Extensions", Saml2MetadataNs,
-				entitiesDescriptor.Extensions);
-
-			foreach (var childEntity in entitiesDescriptor.ChildEntities)
-			{
-				WriteEntityDescriptor(writer, childEntity);
-			}
-
-			foreach (var childEntityDescriptor in entitiesDescriptor.ChildEntityGroups)
-			{
-				WriteEntitiesDescriptor(writer, childEntityDescriptor);
-			}
-			
-			WriteCustomElements(writer, entitiesDescriptor);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteNameIDFormat(XmlWriter writer, NameIDFormat nameIDFormat)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (nameIDFormat == null)
-			{
-				throw new ArgumentNullException(nameof(nameIDFormat));
-			}
-			writer.WriteStartElement("NameIDFormat", Saml2MetadataNs);
-			WriteCustomAttributes(writer, nameIDFormat);
-			writer.WriteString(nameIDFormat.Uri.ToString());
-			WriteCustomElements(writer, nameIDFormat);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteAuthnAuthorityDescriptor(XmlWriter writer, AuthnAuthorityDescriptor descriptor)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (descriptor == null)
-			{
-				throw new ArgumentNullException(nameof(descriptor));
-			}
-			writer.WriteStartElement("AuthnAuthorityDescriptor", Saml2MetadataNs);
-			WriteRoleDescriptorAttributes(writer, descriptor);
-			WriteCustomAttributes(writer, descriptor);
-			WriteRoleDescriptorElements(writer, descriptor);
-
-			WriteEndpoints(writer, descriptor.AuthnQueryServices,
-				"AuthnQueryService", Saml2MetadataNs);
-			WriteEndpoints(writer, descriptor.AssertionIdRequestServices, 
-				"AssertionIDRequestService", Saml2MetadataNs);
-			WriteCollection(writer, descriptor.NameIDFormats, WriteNameIDFormat);
-
-			WriteCustomElements(writer, descriptor);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteAttributeProfile(XmlWriter writer, AttributeProfile profile)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (profile == null)
-			{
-				throw new ArgumentNullException(nameof(profile));
-			}
-			writer.WriteStartElement("AttributeProfile", Saml2MetadataNs);
-			WriteCustomAttributes(writer, profile);
-			writer.WriteString(profile.Uri.ToString());
-			WriteCustomElements(writer, profile);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteAttributeAuthorityDescriptor(XmlWriter writer, AttributeAuthorityDescriptor descriptor)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (descriptor == null)
-			{
-				throw new ArgumentNullException(nameof(descriptor));
-			}
-			writer.WriteStartElement("AttributeAuthorityDescriptor", Saml2MetadataNs);
-			WriteRoleDescriptorAttributes(writer, descriptor);
-			WriteCustomAttributes(writer, descriptor);
-			WriteRoleDescriptorElements(writer, descriptor);
-
-			foreach (var service in descriptor.AttributeServices)
-			{
-				WriteEndpoint(writer, service, "AttributeService", Saml2MetadataNs);
-			}
-
-			foreach (var ars in descriptor.AssertionIdRequestServices)
-			{
-				WriteEndpoint(writer, ars, "AssertionIDRequestService", Saml2MetadataNs);
-			}
-
-			foreach (var nameIDFormat in descriptor.NameIdFormats)
-			{
-				WriteNameIDFormat(writer, nameIDFormat);
-			}
-
-			foreach (var attributeProfile in descriptor.AttributeProfiles)
-			{
-				WriteAttributeProfile(writer, attributeProfile);
-			}
-
-			foreach (var attribute in descriptor.Attributes)
-			{
-				WriteAttribute(writer, attribute);
-			}
-
-			WriteCustomElements(writer, descriptor);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WritePDPDescriptor(XmlWriter writer, PDPDescriptor descriptor)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (descriptor == null)
-			{
-				throw new ArgumentNullException(nameof(descriptor));
-			}
-			writer.WriteStartElement("PDPDescriptor", Saml2MetadataNs);
-			WriteRoleDescriptorAttributes(writer, descriptor);
-			WriteCustomAttributes(writer, descriptor);
-
-			WriteRoleDescriptorElements(writer, descriptor);
-			WriteEndpoints(writer, descriptor.AuthzServices,
-				"AuthzService", Saml2MetadataNs);
-			WriteEndpoints(writer, descriptor.AssertionIdRequestServices,
-				"AssertionIDRequestService", Saml2MetadataNs);
-			foreach (var nameIdFormat in descriptor.NameIDFormats)
-			{
-				WriteNameIDFormat(writer, nameIdFormat);
-			}
-
-			WriteCustomElements(writer, descriptor);
-			writer.WriteEndElement();
-		}
-
 		protected virtual void WriteAdditionalMetadataLocation(XmlWriter writer, AdditionalMetadataLocation location)
 		{
 			if (writer == null)
@@ -1215,685 +1316,11 @@ namespace ScottBrady91.IdentityModel.Metadata
 				throw new ArgumentNullException(nameof(location));
 			}
 
-			writer.WriteStartElement("AdditionalMetadataLocation", Saml2MetadataNs);
+			writer.WriteStartElement("AdditionalMetadataLocation", Saml2MetadataConstants.Namespace);
 			WriteCustomAttributes(writer, location);
 			writer.WriteAttributeString("namespace", location.Namespace);
 			writer.WriteString(location.Uri.ToString());
 			WriteCustomElements(writer, location);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteEntityDescriptor(XmlWriter writer, EntityDescriptor entityDescriptor)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (entityDescriptor == null)
-			{
-				throw new ArgumentNullException(nameof(entityDescriptor));
-			}
-
-			EnvelopedSignatureWriter signatureWriter = null;
-			if (entityDescriptor.SigningCredentials != null)
-			{
-				string referenceId = Guid.NewGuid().ToString("N");
-				signatureWriter = new EnvelopedSignatureWriter(writer,
-					entityDescriptor.SigningCredentials, referenceId);
-			}
-
-			writer.WriteStartElement("EntityDescriptor", Saml2MetadataNs);
-			WriteStringAttributeIfPresent(writer, "ID", null, entityDescriptor.Id);
-			writer.WriteAttributeString("entityID", entityDescriptor.EntityId.Id);
-			WriteCustomAttributes(writer, entityDescriptor);
-
-			if (signatureWriter != null)
-			{
-				signatureWriter.WriteSignature();
-			}
-
-			WriteWrappedElements(writer, null, "Extensions", Saml2MetadataNs,
-				entityDescriptor.Extensions);
-
-			foreach (var roleDescriptor in entityDescriptor.RoleDescriptors)
-			{
-				if (roleDescriptor is ApplicationServiceDescriptor appDescriptor)
-				{
-					WriteApplicationServiceDescriptor(writer, appDescriptor);
-				}
-				else if (roleDescriptor is SecurityTokenServiceDescriptor secDescriptor)
-				{
-					WriteSecurityTokenServiceDescriptor(writer, secDescriptor);
-				}
-				else if (roleDescriptor is IdentityProviderSingleSignOnDescriptor idpSsoDescriptor)
-				{
-					WriteIdpSsoDescriptor(writer, idpSsoDescriptor);
-				}
-				else if (roleDescriptor is SingleSignOnDescriptor2 spSsoDescriptor)
-				{
-					WriteSpSsoDescriptor(writer, spSsoDescriptor);
-				}
-				else if (roleDescriptor is AuthnAuthorityDescriptor authDescriptor)
-				{
-					WriteAuthnAuthorityDescriptor(writer, authDescriptor);
-				}
-				else if (roleDescriptor is AttributeAuthorityDescriptor attDescriptor)
-				{
-					WriteAttributeAuthorityDescriptor(writer, attDescriptor);
-				}
-				else if (roleDescriptor is PDPDescriptor pdpDescriptor)
-				{
-					WritePDPDescriptor(writer, pdpDescriptor);
-				}
-			}
-			if (entityDescriptor.Organization != null)
-			{
-				WriteOrganization(writer, entityDescriptor.Organization);
-			}
-			foreach (var person in entityDescriptor.Contacts)
-			{
-				WriteContactPerson(writer, person);
-			}
-			foreach (var meta in entityDescriptor.AdditionalMetadataLocations)
-			{
-				WriteAdditionalMetadataLocation(writer, meta);
-			}
-			WriteCustomElements(writer, entityDescriptor);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteIdpSsoDescriptor(XmlWriter writer, IdentityProviderSingleSignOnDescriptor descriptor)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (descriptor == null)
-			{
-				throw new ArgumentNullException(nameof(descriptor));
-			}
-
-			writer.WriteStartElement("IDPSSODescriptor", Saml2MetadataNs);
-			WriteBooleanAttribute(writer, "WantAuthnRequestsSigned", null, descriptor.WantAuthnRequestsSigned);
-			WriteSsoDescriptorAttributes(writer, descriptor);
-			WriteCustomAttributes(writer, descriptor);
-
-			WriteSsoDescriptorElements(writer, descriptor);
-			WriteEndpoints(writer, descriptor.SingleSignOnServices,
-				"SingleSignOnService", Saml2MetadataNs);
-			WriteEndpoints(writer, descriptor.NameIDMappingServices,
-				"NameIDMappingService", Saml2MetadataNs);
-			WriteEndpoints(writer, descriptor.AssertionIDRequestServices,
-				"AssertionIDRequestService", Saml2MetadataNs);
-			foreach (var attProfile in descriptor.AttributeProfiles)
-			{
-				WriteAttributeProfile(writer, attProfile);
-			}
-			foreach (var attribute in descriptor.SupportedAttributes)
-			{
-				WriteAttribute(writer, attribute);
-			}
-
-			WriteCustomElements(writer, descriptor);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteKeyDescriptor(XmlWriter writer, KeyDescriptor keyDescriptor)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (keyDescriptor == null)
-			{
-				throw new ArgumentNullException(nameof(keyDescriptor));
-			}
-
-			writer.WriteStartElement("KeyDescriptor", Saml2MetadataNs);
-			if (keyDescriptor.Use != KeyType.Unspecified)
-			{
-				string useValue;
-				switch (keyDescriptor.Use)
-				{
-					case KeyType.Signing:
-						useValue = "signing";
-						break;
-					case KeyType.Encryption:
-						useValue = "encryption";
-						break;
-					default:
-						throw new MetadataSerializationException(
-							$"Unknown KeyType enumeration entry '{keyDescriptor.Use}'");
-				}
-				writer.WriteAttributeString("use", useValue);
-			}
-			WriteCustomAttributes(writer, keyDescriptor);
-
-			if (keyDescriptor.KeyInfo == null) throw new MetadataSerializationException("Null key info");
-
-		    SecurityTokenSerializer.WriteKeyIdentifier(writer, keyDescriptor.KeyInfo);
-
-            WriteCollection(writer, keyDescriptor.EncryptionMethods, WriteEncryptionMethod);
-
-			WriteCustomElements(writer, keyDescriptor);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteLocalizedName(XmlWriter writer, LocalizedName name,
-			string elName, string ns)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (name == null)
-			{
-				throw new ArgumentNullException(nameof(name));
-			}
-			if (elName == null)
-			{
-				throw new ArgumentNullException(nameof(elName));
-			}
-			if (ns == null)
-			{
-				throw new ArgumentNullException(nameof(ns));
-			}
-
-			writer.WriteStartElement(elName, ns);
-			writer.WriteAttributeString("xml", "lang", XmlNs, name.Language.Name);
-			WriteCustomAttributes(writer, name);
-			writer.WriteString(name.Name);
-			WriteCustomElements(writer, name);
-			writer.WriteEndElement();
-		}
-
-		void WriteLocalizedNames(XmlWriter writer, IEnumerable<LocalizedName> names,
-			string elName, string ns) =>
-				WriteCollection(writer, names, (writer_, name) =>
-					WriteLocalizedName(writer_, name, elName, ns));
-
-		protected virtual void WriteLocalizedUri(XmlWriter writer, LocalizedUri uri,
-			string name, string ns)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (uri == null)
-			{
-				throw new ArgumentNullException(nameof(uri));
-			}
-			if (name == null)
-			{
-				throw new ArgumentNullException(nameof(name));
-			}
-			if (ns == null)
-			{
-				throw new ArgumentNullException(nameof(ns));
-			}
-
-			writer.WriteStartElement(name, ns);
-			writer.WriteAttributeString("xml", "lang", XmlNs, uri.Language.Name);
-			WriteCustomAttributes(writer, name);
-			writer.WriteString(uri.Uri.ToString());
-			WriteCustomElements(writer, name);
-			writer.WriteEndElement();
-		}
-
-		public void WriteMetadata(Stream stream, MetadataBase metadata)
-		{
-			if (stream == null)
-			{
-				throw new ArgumentNullException(nameof(stream));
-			}
-			if (metadata == null)
-			{
-				throw new ArgumentNullException(nameof(metadata));
-			}
-			using (var writer = XmlWriter.Create(stream))
-			{
-				WriteMetadata(writer, metadata);
-			}
-		}
-
-		public void WriteMetadata(XmlWriter writer, MetadataBase metadata)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (metadata == null)
-			{
-				throw new ArgumentNullException(nameof(metadata));
-			}
-			WriteMetadataCore(writer, metadata);
-		}
-
-		protected virtual void WriteMetadataCore(XmlWriter writer, MetadataBase metadata)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (metadata == null)
-			{
-				throw new ArgumentNullException(nameof(metadata));
-			}
-
-			if (metadata is EntitiesDescriptor entities)
-			{
-				WriteEntitiesDescriptor(writer, entities);
-			}
-			else if (metadata is EntityDescriptor entity)
-			{
-				WriteEntityDescriptor(writer, entity);
-			}
-		}
-
-		protected virtual void WriteOrganization(XmlWriter writer, Organization organization)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (organization == null)
-			{
-				throw new ArgumentNullException(nameof(organization));
-			}
-			if (organization.Names.Count == 0)
-			{
-				throw new MetadataSerializationException(
-					"An organisation must have at least one Name property");
-			}
-			if (organization.DisplayNames.Count == 0)
-			{
-				throw new MetadataSerializationException(
-					"An organisation must have at least one DisplayName property");
-			}
-			if (organization.Urls.Count == 0)
-			{
-				throw new MetadataSerializationException(
-					"An organisation must have at least one Url property");
-			}
-
-			writer.WriteStartElement("Organization", Saml2MetadataNs);
-			WriteCustomAttributes(writer, organization);
-
-			if (organization.Extensions.Count > 0)
-			{
-				writer.WriteStartElement("Extensions", Saml2MetadataNs);
-				foreach (var extension in organization.Extensions)
-				{
-					extension.WriteTo(writer);
-				}
-				writer.WriteEndElement();
-			}
-			WriteLocalizedNames(writer, organization.Names,
-				"OrganizationName", Saml2MetadataNs);
-			WriteLocalizedNames(writer, organization.DisplayNames,
-				"OrganizationDisplayName", Saml2MetadataNs);
-			WriteCollection(writer, organization.Urls, (writer_, uri) =>
-				WriteLocalizedUri(writer_, uri, "OrganizationURL", Saml2MetadataNs));
-
-			WriteCustomElements(writer, organization);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteRoleDescriptorAttributes(XmlWriter writer, RoleDescriptor descriptor)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (descriptor == null)
-			{
-				throw new ArgumentNullException(nameof(descriptor));
-			}
-
-			WriteStringAttributeIfPresent(writer, "ID", null, descriptor.Id);
-			WriteUriAttributeIfPresent(writer, "errorURL", null, descriptor.ErrorUrl);
-			string protocolsSupported = descriptor.ProtocolsSupported.Aggregate("",
-				(list, uri) => $"{list}{(list == "" ? "" : " ")}{uri}");
-			writer.WriteAttributeString("protocolSupportEnumeration", protocolsSupported);
-			WriteCustomAttributes(writer, descriptor);
-		}
-
-		void WriteRoleDescriptorElements(XmlWriter writer, RoleDescriptor descriptor, bool writeExtensions)
-		{
-			if (writeExtensions)
-			{
-				WriteWrappedElements(writer, null, "Extensions", Saml2MetadataNs,
-					descriptor.Extensions);
-			}
-			foreach (var kd in descriptor.Keys)
-			{
-				WriteKeyDescriptor(writer, kd);
-			}
-			if (descriptor.Organization != null)
-			{
-				WriteOrganization(writer, descriptor.Organization);
-			}
-			foreach (var contact in descriptor.Contacts)
-			{
-				WriteContactPerson(writer, contact);
-			}
-			WriteCustomElements(writer, descriptor);
-		}
-
-		protected virtual void WriteRoleDescriptorElements(XmlWriter writer, RoleDescriptor descriptor)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (descriptor == null)
-			{
-				throw new ArgumentNullException(nameof(descriptor));
-			}
-			WriteRoleDescriptorElements(writer, descriptor, true);
-		}
-
-		protected virtual void WriteSecurityTokenServiceDescriptor(XmlWriter writer,
-			SecurityTokenServiceDescriptor descriptor)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (descriptor == null)
-			{
-				throw new ArgumentNullException(nameof(descriptor));
-			}
-
-			writer.WriteStartElement("RoleDescriptor", Saml2MetadataNs);
-			writer.WriteAttributeString("xsi", "type", XsiNs, "fed:SecurityTokenServiceType");
-			WriteWebServiceDescriptorAttributes(writer, descriptor);
-			WriteCustomAttributes(writer, descriptor);
-
-			WriteWebServiceDescriptorElements(writer, descriptor);
-			WriteEndpointReferences(writer, "SecurityTokenServiceEndpoint",
-				FedNs, descriptor.SecurityTokenServiceEndpoints);
-			WriteEndpointReferences(writer, "SingleSignOutSubscriptionEndpoint",
-				FedNs, descriptor.SingleSignOutSubscriptionEndpoints);
-			WriteEndpointReferences(writer, "SingleSignOutNotificationEndpoint",
-				FedNs, descriptor.SingleSignOutNotificationEndpoints);
-			WriteEndpointReferences(writer, "PassiveRequestorEndpoint",
-				FedNs, descriptor.PassiveRequestorEndpoints);
-
-			WriteCustomElements(writer, descriptor);
-
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteRequestedAttribute(XmlWriter writer, RequestedAttribute attribute)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (attribute == null)
-			{
-				throw new ArgumentNullException(nameof(attribute));
-			}
-
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (attribute == null)
-			{
-				throw new ArgumentNullException(nameof(attribute));
-			}
-
-			writer.WriteStartElement("RequestedAttribute", Saml2MetadataNs);
-			WriteBooleanAttribute(writer, "isRequired", null, attribute.IsRequired);
-			WriteAttributeAttributes(writer, attribute);
-			WriteAttributeElements(writer, attribute);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteAttributeConsumingService(XmlWriter writer, AttributeConsumingService service)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (service == null)
-			{
-				throw new ArgumentNullException(nameof(service));
-			}
-
-			writer.WriteStartElement("AttributeConsumingService", Saml2MetadataNs);
-			writer.WriteAttributeString("index", service.Index.ToString());
-			WriteBooleanAttribute(writer, "isDefault", null, service.IsDefault);
-			WriteCustomAttributes(writer, service);
-
-			WriteLocalizedNames(writer, service.ServiceNames,
-				"ServiceName", Saml2MetadataNs);
-			WriteLocalizedNames(writer, service.ServiceDescriptions,
-				"ServiceDescription", Saml2MetadataNs);
-			WriteCollection(writer, service.RequestedAttributes,
-				WriteRequestedAttribute);
-			WriteCustomElements(writer, service);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteSpSsoDescriptor(XmlWriter writer, SingleSignOnDescriptor2 descriptor)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (descriptor == null)
-			{
-				throw new ArgumentNullException(nameof(descriptor));
-			}
-
-			writer.WriteStartElement("SPSSODescriptor", Saml2MetadataNs);
-			WriteBooleanAttribute(writer, "AuthnRequestsSigned", null, descriptor.AuthnRequestsSigned);
-			WriteBooleanAttribute(writer, "WantAssertionsSigned", null, descriptor.WantAssertionsSigned);
-			WriteSsoDescriptorAttributes(writer, descriptor);
-			WriteCustomAttributes(writer, descriptor);
-
-			if (descriptor.DiscoveryResponses.Count > 0 || descriptor.Extensions.Any())
-			{
-				writer.WriteStartElement("Extensions", Saml2MetadataNs);
-				WriteIndexedEndpoints(writer, descriptor.DiscoveryResponses.Values,
-					"DiscoveryResponse", IdpDiscNs);
-				foreach (var extension in descriptor.Extensions)
-				{
-					extension.WriteTo(writer);
-				}
-				writer.WriteEndElement();
-			}
-			WriteSsoDescriptorElements(writer, descriptor, false);
-			WriteIndexedEndpoints(writer, descriptor.AssertionConsumerServices.Values,
-				"AssertionConsumerService", Saml2MetadataNs);
-			WriteCollection(writer, descriptor.AttributeConsumingServices.Values,
-				WriteAttributeConsumingService);
-
-			WriteCustomElements(writer, descriptor);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteSsoDescriptorAttributes(XmlWriter writer, SingleSignOnDescriptor descriptor)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (descriptor == null)
-			{
-				throw new ArgumentNullException(nameof(descriptor));
-			}
-			WriteRoleDescriptorAttributes(writer, descriptor);
-			WriteCustomAttributes(writer, descriptor);
-		}
-
-		void WriteSsoDescriptorElements(XmlWriter writer, SingleSignOnDescriptor descriptor, bool writeExtensions)
-		{
-			WriteRoleDescriptorElements(writer, descriptor, writeExtensions);
-			WriteIndexedEndpoints(writer, descriptor.ArtifactResolutionServices.Values,
-				"ArtifactResolutionService", Saml2MetadataNs);
-			WriteEndpoints(writer, descriptor.SingleLogoutServices,
-				"SingleLogoutService", Saml2MetadataNs);
-			WriteEndpoints(writer, descriptor.ManageNameIDServices,
-				"ManageNameIDService", Saml2MetadataNs);
-			WriteCollection(writer, descriptor.NameIdentifierFormats, WriteNameIDFormat);
-			WriteCustomElements(writer, descriptor);
-		}
-
-		protected virtual void WriteSsoDescriptorElements(XmlWriter writer, SingleSignOnDescriptor descriptor)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (descriptor == null)
-			{
-				throw new ArgumentNullException(nameof(descriptor));
-			}
-
-			WriteSsoDescriptorElements(writer, descriptor, true);
-		}
-
-		void WriteUris(XmlWriter writer, string parentElementName,
-			string childElementName, string ns, IEnumerable<Uri> uris)
-		{
-			if (!uris.Any())
-			{
-				return;
-			}
-			writer.WriteStartElement(parentElementName, ns);
-			foreach (var uri in uris)
-			{
-				writer.WriteStartElement(childElementName, ns);
-				writer.WriteAttributeString("Uri", uri.ToString());
-				writer.WriteEndElement();
-			}
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteWebServiceDescriptorAttributes(XmlWriter writer, WebServiceDescriptor descriptor)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (descriptor == null)
-			{
-				throw new ArgumentNullException(nameof(descriptor));
-			}
-
-			WriteRoleDescriptorAttributes(writer, descriptor);
-			WriteStringAttributeIfPresent(writer, "ServiceDisplayName",
-				null, descriptor.ServiceDisplayName);
-			WriteStringAttributeIfPresent(writer, "ServiceDescription",
-				null, descriptor.ServiceDescription);
-		}
-
-		void WriteDisplayClaims(XmlWriter writer, string parentName, string parentNs,
-			IEnumerable<DisplayClaim> claims)
-		{
-			if (!claims.Any())
-			{
-				return;
-			}
-
-			writer.WriteStartElement(parentName, parentNs);
-			WriteCollection(writer, claims, WriteDisplayClaim);
-			writer.WriteEndElement();
-		}
-
-		protected virtual void WriteWebServiceDescriptorElements(XmlWriter writer, WebServiceDescriptor descriptor)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (descriptor == null)
-			{
-				throw new ArgumentNullException(nameof(descriptor));
-			}
-
-			WriteRoleDescriptorElements(writer, descriptor);
-
-			WriteUris(writer, "LogicalServiceNamesOffered",
-				"IssuerName", FedNs, descriptor.LogicalServiceNamesOffered);
-			WriteUris(writer, "TokenTypesOffered",
-				"TokenType", FedNs, descriptor.TokenTypesOffered);
-			WriteUris(writer, "ClaimDialectsOffered",
-				"ClaimDialect", FedNs, descriptor.ClaimDialectsOffered);
-
-			WriteDisplayClaims(writer, "ClaimTypesOffered", FedNs,
-				descriptor.ClaimTypesOffered);
-			WriteDisplayClaims(writer, "ClaimTypesRequested", FedNs,
-				descriptor.ClaimTypesRequested);
-
-			if (descriptor.AutomaticPseudonyms.HasValue)
-			{
-				writer.WriteStartElement("AutomaticPseudonyms", FedNs);
-				writer.WriteString(descriptor.AutomaticPseudonyms.Value ? "true" : "false");
-				writer.WriteEndElement();
-			}
-			if (descriptor.TargetScopes.Count > 0)
-			{
-				writer.WriteStartElement("TargetScopes", FedNs);
-				WriteCollection(writer, descriptor.TargetScopes, WriteEndpointReference);
-				writer.WriteEndElement();
-			}
-
-			WriteCustomElements(writer, descriptor);
-		}
-
-		protected virtual void WriteAttributeAttributes(XmlWriter writer, Saml2Attribute attribute)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (attribute == null)
-			{
-				throw new ArgumentNullException(nameof(attribute));
-			}
-
-			writer.WriteAttributeString("Name", attribute.Name);
-			WriteUriAttributeIfPresent(writer, "NameFormat", null, attribute.NameFormat);
-			WriteStringAttributeIfPresent(writer, "FriendlyName", null, attribute.FriendlyName);
-			WriteCustomAttributes(writer, attribute);
-		}
-
-		protected virtual void WriteAttributeElements(XmlWriter writer,
-			Saml2Attribute attribute)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (attribute == null)
-			{
-				throw new ArgumentNullException(nameof(attribute));
-			}
-
-			WriteCollection(writer, attribute.Values, (writer_, value) =>
-				WriteStringElement(writer, "AttributeValue", Saml2AssertionNs, value));
-			WriteCustomElements(writer, attribute);
-		}
-
-		protected virtual void WriteAttribute(XmlWriter writer, Saml2Attribute attribute)
-		{
-			if (writer == null)
-			{
-				throw new ArgumentNullException(nameof(writer));
-			}
-			if (attribute == null)
-			{
-				throw new ArgumentNullException(nameof(attribute));
-			}
-
-			writer.WriteStartElement("Attribute", Saml2AssertionNs);
-			WriteAttributeAttributes(writer, attribute);
-			WriteAttributeElements(writer, attribute);
 			writer.WriteEndElement();
 		}
     }

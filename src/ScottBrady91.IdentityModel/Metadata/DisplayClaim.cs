@@ -10,7 +10,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 		public string DisplayName { get; set; }
 	    public string DisplayValue { get; set; }
         public string Description { get; set; }
-		public bool? Optional { get; set; }
+		public bool Optional { get; set; }
         public bool WriteOptionalAttribute { get; set; }
 
         // TODO DisplayClaim extensions
