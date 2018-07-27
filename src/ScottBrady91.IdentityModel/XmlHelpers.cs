@@ -1,17 +1,42 @@
-﻿using System.Xml;
+﻿using System;
+using System.Xml;
 
 namespace ScottBrady91.IdentityModel
 {
-    public class XmlHelpers
+    internal static class XmlHelpers
     {
-        public static XmlDocument CreateSafeXmlDocument()
+        // Element helpers
+        public static void WriteElementIfPresent(this XmlWriter writer, string elementName, string elementNamespace, string value)
         {
-            return new XmlDocument()
+            if (!string.IsNullOrEmpty(value))
+                writer.WriteElementString(elementName, elementNamespace, value);
+        }
+
+        public static void WriteElementIfPresent(this XmlWriter writer, string prefix, string elementName, string elementNamespace, string value)
+        {
+            if (!string.IsNullOrEmpty(value))
+                writer.WriteElementString(prefix, elementName, elementNamespace, value);
+        }
+
+        // Attribute helpers
+        public static void WriteAttributeIfPresent(this XmlWriter writer, string attributeName, string attributeNamespace, bool? value)
+        {
+            if (value.HasValue)
             {
-                // Null is the default on 4.6 and later, but not on 4.5.
-                XmlResolver = null,
-                PreserveWhitespace = true
-            };
+                writer.WriteAttributeString(attributeName, attributeNamespace, XmlConvert.ToString(value.Value));
+            }
+        }
+
+        public static void WriteAttributeIfPresent(this XmlWriter writer, string attributeName, string attributeNamespace, string value)
+        {
+            if (!string.IsNullOrEmpty(value))
+                writer.WriteAttributeString(attributeName, attributeNamespace, value);
+        }
+        
+        public static void WriteAttributeIfPresent(this XmlWriter writer, string attributeName, string attributeNamespace, Uri value)
+        {
+            if (value != null)
+                writer.WriteAttributeString(attributeName, attributeNamespace, value.IsAbsoluteUri ? value.AbsoluteUri : value.ToString());
         }
     }
 }

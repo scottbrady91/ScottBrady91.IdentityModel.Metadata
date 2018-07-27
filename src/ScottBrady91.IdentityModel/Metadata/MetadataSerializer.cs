@@ -10,17 +10,16 @@ using System.Xml;
 using System.Xml.Schema;
 using static System.String;
 
+// ReSharper disable VirtualMemberNeverOverridden
 namespace ScottBrady91.IdentityModel.Metadata
 {
 	public class MetadataSerializer
 	{
-		const string LanguageNamespaceUri = "http://www.w3.org/XML/1998/namespace";
-		const string Saml2AssertionNs = "urn:oasis:names:tc:SAML:2.0:assertion";
-		const string AuthNs = "http://docs.oasis-open.org/wsfed/authorization/200706";
-		const string XEncNs = "http://www.w3.org/2001/04/xmlenc#";
-		const string DSigNs = "http://www.w3.org/2000/09/xmldsig#";
-		const string DSig11Ns = "http://www.w3.org/2009/xmldsig11#";
-		const string IdpDiscNs = "urn:oasis:names:tc:SAML:profiles:SSO:idp-discovery-protocol";
+		private const string LanguageNamespaceUri = "http://www.w3.org/XML/1998/namespace";
+		private const string AuthNs = "http://docs.oasis-open.org/wsfed/authorization/200706";
+		private const string XEncNs = "http://www.w3.org/2001/04/xmlenc#";
+		private const string DSigNs = "http://www.w3.org/2000/09/xmldsig#";
+		private const string DSig11Ns = "http://www.w3.org/2009/xmldsig11#";
 
 		public SecurityTokenSerializer SecurityTokenSerializer { get; }
 
@@ -28,12 +27,12 @@ namespace ScottBrady91.IdentityModel.Metadata
         public MetadataSerializer(SecurityTokenSerializer serializer)
 	    {
 	        SecurityTokenSerializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
-	        /*TrustedStoreLocation = IdentityConfiguration.DefaultTrustedStoreLocation;
-	        CertificateValidationMode = IdentityConfiguration.DefaultCertificateValidationMode;
-	        RevocationMode = IdentityConfiguration.DefaultRevocationMode;*/
         }
 
-	    protected virtual void WriteApplicationServiceDescriptor(XmlWriter writer, ApplicationServiceDescriptor appService)
+	    protected virtual void WriteCustomAttributes<T>(XmlWriter writer, T source) { }
+	    protected virtual void WriteCustomElements<T>(XmlWriter writer, T source) { }
+        
+        protected virtual void WriteApplicationServiceDescriptor(XmlWriter writer, ApplicationServiceDescriptor appService)
 	    {
 	        if (writer == null) throw new ArgumentNullException(nameof(writer));
 	        if (appService == null) throw new ArgumentNullException(nameof(appService));
@@ -47,8 +46,19 @@ namespace ScottBrady91.IdentityModel.Metadata
 
 	        WriteWebServiceDescriptorElements(writer, appService);
 
-	        WriteEndpointReferences(writer, FederationMetadataConstants.Elements.ApplicationServiceEndpoint, FederationMetadataConstants.Namespace, appService.Endpoints);
-	        WriteEndpointReferences(writer, FederationMetadataConstants.Elements.PassiveRequestorEndpoint, FederationMetadataConstants.Namespace, appService.PassiveRequestorEndpoints);
+	        foreach (var endpoint in appService.Endpoints)
+	        {
+	            writer.WriteStartElement(FederationMetadataConstants.Elements.ApplicationServiceEndpoint, FederationMetadataConstants.Namespace);
+	            WriteEndpointReference(writer, endpoint);
+                writer.WriteEndElement();
+	        }
+
+	        foreach (var endpoint in appService.PassiveRequestorEndpoints)
+	        {
+	            writer.WriteStartElement(FederationMetadataConstants.Elements.PassiveRequestorEndpoint, FederationMetadataConstants.Namespace);
+	            WriteEndpointReference(writer, endpoint);
+	            writer.WriteEndElement();
+	        }
 
 	        WriteCustomElements(writer, appService);
             
@@ -64,9 +74,9 @@ namespace ScottBrady91.IdentityModel.Metadata
 	        writer.WriteAttributeString(Saml2MetadataConstants.Attributes.ContactType, null, ContactTypeHelpers.ToString(contactPerson.Type));
             WriteCustomAttributes(writer, contactPerson);
 
-	        if (IsNullOrEmpty(contactPerson.Company)) writer.WriteElementString(Saml2MetadataConstants.Elements.Company, Saml2MetadataConstants.Namespace, contactPerson.Company);
-	        if (IsNullOrEmpty(contactPerson.GivenName)) writer.WriteElementString(Saml2MetadataConstants.Elements.GivenName, Saml2MetadataConstants.Namespace, contactPerson.GivenName);
-            if (IsNullOrEmpty(contactPerson.Surname)) writer.WriteElementString(Saml2MetadataConstants.Elements.Surname, Saml2MetadataConstants.Namespace, contactPerson.Surname);
+	        writer.WriteElementIfPresent(Saml2MetadataConstants.Elements.Company, Saml2MetadataConstants.Namespace, contactPerson.Company);
+	        writer.WriteElementIfPresent(Saml2MetadataConstants.Elements.GivenName, Saml2MetadataConstants.Namespace, contactPerson.GivenName);
+            writer.WriteElementIfPresent(Saml2MetadataConstants.Elements.Surname, Saml2MetadataConstants.Namespace, contactPerson.Surname);
 
             foreach (var email in contactPerson.EmailAddresses) writer.WriteElementString(Saml2MetadataConstants.Elements.EmailAddress, Saml2MetadataConstants.Namespace, email);
 	        foreach (var phone in contactPerson.TelephoneNumbers) writer.WriteElementString(Saml2MetadataConstants.Elements.TelephoneNumber, Saml2MetadataConstants.Namespace, phone);
@@ -75,10 +85,6 @@ namespace ScottBrady91.IdentityModel.Metadata
 
 	        writer.WriteEndElement();
 	    }
-
-	    // Extensibility points
-	    protected virtual void WriteCustomAttributes<T>(XmlWriter writer, T source) { }
-	    protected virtual void WriteCustomElements<T>(XmlWriter writer, T source) { }
 
 	    protected virtual void WriteProtocolEndpoint(XmlWriter writer, ProtocolEndpoint endpoint, string name, string ns)
 	    {
@@ -92,10 +98,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 	        writer.WriteAttributeString(Saml2MetadataConstants.Attributes.Binding, endpoint.Binding.IsAbsoluteUri ? endpoint.Binding.AbsoluteUri : endpoint.Binding.ToString());
 	        writer.WriteAttributeString(Saml2MetadataConstants.Attributes.Location, endpoint.Location.IsAbsoluteUri ? endpoint.Location.AbsoluteUri : endpoint.Location.ToString());
 
-	        if (endpoint.ResponseLocation != null)
-	        {
-	            writer.WriteAttributeString(Saml2MetadataConstants.Attributes.ResponseLocation, endpoint.ResponseLocation.IsAbsoluteUri ? endpoint.ResponseLocation.AbsoluteUri : endpoint.ResponseLocation.ToString());
-	        }
+	        writer.WriteAttributeIfPresent(Saml2MetadataConstants.Attributes.ResponseLocation, null, endpoint.ResponseLocation);
 
             WriteCustomAttributes(writer, endpoint);
 
@@ -112,21 +115,11 @@ namespace ScottBrady91.IdentityModel.Metadata
 
 	        writer.WriteAttributeString(WSFederationMetadataConstants.Attributes.Uri, claim.ClaimType);
 
-	        if (claim.WriteOptionalAttribute)
-	        {
-	            writer.WriteAttributeString(WSFederationMetadataConstants.Attributes.Optional, XmlConvert.ToString(claim.Optional));
-	        }
+	        if (claim.WriteOptionalAttribute) writer.WriteAttributeIfPresent(WSFederationMetadataConstants.Attributes.Optional, null, claim.Optional);
 
-	        if (!IsNullOrEmpty(claim.DisplayName))
-	        {
-	            writer.WriteElementString(WSAuthorizationConstants.Prefix, WSAuthorizationConstants.Elements.DisplayName, WSAuthorizationConstants.Namespace, claim.DisplayName);
-	        }
-
-	        if (!IsNullOrEmpty(claim.Description))
-	        {
-	            writer.WriteElementString(WSAuthorizationConstants.Prefix, WSAuthorizationConstants.Elements.Description, WSAuthorizationConstants.Namespace, claim.Description);
-	        }
-
+	        writer.WriteElementIfPresent(WSAuthorizationConstants.Prefix, WSAuthorizationConstants.Elements.DisplayName, WSAuthorizationConstants.Namespace, claim.DisplayName);
+	        writer.WriteElementIfPresent(WSAuthorizationConstants.Prefix, WSAuthorizationConstants.Elements.Description, WSAuthorizationConstants.Namespace, claim.Description);
+	        
 	        writer.WriteEndElement();
 	    }
 
@@ -160,7 +153,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 	            }
 	        }
 
-	        WriteStringAttributeIfPresent(writer, Saml2MetadataConstants.Attributes.EntityGroupName, null, entitiesDescriptor.Name);
+	        writer.WriteAttributeIfPresent(Saml2MetadataConstants.Attributes.EntityGroupName, null, entitiesDescriptor.Name);
 
 	        WriteCustomAttributes(writer, entitiesDescriptor);
 
@@ -198,7 +191,7 @@ namespace ScottBrady91.IdentityModel.Metadata
             }
 
             writer.WriteStartElement(Saml2MetadataConstants.Elements.EntityDescriptor, Saml2MetadataConstants.Namespace);
-            WriteStringAttributeIfPresent(writer, Saml2MetadataConstants.Attributes.Id, null, entityReference);
+            writer.WriteAttributeIfPresent(Saml2MetadataConstants.Attributes.Id, null, entityReference);
 
             if (entityDescriptor.EntityId?.Id == null)
             {
@@ -206,7 +199,7 @@ namespace ScottBrady91.IdentityModel.Metadata
             }
 
             writer.WriteAttributeString(Saml2MetadataConstants.Attributes.EntityId, null, entityDescriptor.EntityId.Id);
-            WriteStringAttributeIfPresent(writer, WSFederationMetadataConstants.Attributes.FederationId, WSFederationMetadataConstants.Namespace, entityDescriptor.FederationId);
+            writer.WriteAttributeIfPresent(WSFederationMetadataConstants.Attributes.FederationId, WSFederationMetadataConstants.Namespace, entityDescriptor.FederationId);
             WriteCustomAttributes(writer, entityDescriptor);
 
             signatureWriter?.WriteSignature();
@@ -263,7 +256,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 
 	        if (descriptor.WantAuthenticationRequestsSigned)
 	        {
-	            writer.WriteAttributeString(Saml2MetadataConstants.Attributes.WantAuthenticationRequestsSigned, null, XmlConvert.ToString(descriptor.WantAuthenticationRequestsSigned));
+	            writer.WriteAttributeIfPresent(Saml2MetadataConstants.Attributes.WantAuthenticationRequestsSigned, null, descriptor.WantAuthenticationRequestsSigned);
 	        }
 
             WriteSingleSignOnDescriptorAttributes(writer, descriptor);
@@ -299,20 +292,17 @@ namespace ScottBrady91.IdentityModel.Metadata
 	        writer.WriteStartElement(name, ns);
 
             if (endpoint.Binding == null) throw new MetadataSerializationException($"Endpoint {name} missing binding");
-	        writer.WriteAttributeString(Saml2MetadataConstants.Attributes.Binding, null,
-	            endpoint.Binding.IsAbsoluteUri ? endpoint.Binding.AbsoluteUri : endpoint.Binding.ToString());
+	        writer.WriteAttributeIfPresent(Saml2MetadataConstants.Attributes.Binding, null, endpoint.Binding);
 
             if (endpoint.Location == null) throw new MetadataSerializationException($"Endpoint {name} missing location");
-	        writer.WriteAttributeString(Saml2MetadataConstants.Attributes.Location, null,
-	            endpoint.Location.IsAbsoluteUri ? endpoint.Location.AbsoluteUri : endpoint.Location.ToString());
+	        writer.WriteAttributeIfPresent(Saml2MetadataConstants.Attributes.Location, null, endpoint.Location);
             
             if (endpoint.Index < 0) throw new MetadataSerializationException($"Endpoint {name} index is less than zero");
 	        writer.WriteAttributeString(Saml2MetadataConstants.Attributes.EndpointIndex, null, endpoint.Index.ToString(CultureInfo.InvariantCulture));
 
-            WriteStringAttributeIfPresent(writer, Saml2MetadataConstants.Attributes.ResponseLocation, null,
-	            endpoint.ResponseLocation.IsAbsoluteUri ? endpoint.ResponseLocation.AbsoluteUri : endpoint.ResponseLocation.ToString());
+	        writer.WriteAttributeIfPresent(Saml2MetadataConstants.Attributes.ResponseLocation, null, endpoint.ResponseLocation);
 
-	        WriteBooleanAttribute(writer, Saml2MetadataConstants.Attributes.EndpointIsDefault, null, endpoint.IsDefault);
+	        writer.WriteAttributeIfPresent(Saml2MetadataConstants.Attributes.EndpointIsDefault, null, endpoint.IsDefault);
 
 	        WriteCustomAttributes(writer, endpoint);
             WriteCustomElements(writer, endpoint);
@@ -459,14 +449,8 @@ namespace ScottBrady91.IdentityModel.Metadata
 	            writer.WriteAttributeString(Saml2MetadataConstants.Attributes.ValidUntil, null, descriptor.ValidUntil.Value.ToString("s", CultureInfo.InvariantCulture));
 	        }
 
-	        if (descriptor.ErrorUrl != null)
-	        {
-	            writer.WriteAttributeString(Saml2MetadataConstants.Attributes.ErrorUrl, null, descriptor.ErrorUrl.IsAbsoluteUri ? descriptor.ErrorUrl.AbsoluteUri : descriptor.ErrorUrl.ToString());
-	        }
-
-
-            WriteUriAttributeIfPresent(writer, Saml2MetadataConstants.Attributes.ErrorUrl, null, descriptor.ErrorUrl);
-
+	        writer.WriteAttributeIfPresent(Saml2MetadataConstants.Attributes.ErrorUrl, null, descriptor.ErrorUrl);
+            
 	        var sb = new StringBuilder();
 	        foreach (var protocol in descriptor.ProtocolsSupported)
 	        {
@@ -515,8 +499,19 @@ namespace ScottBrady91.IdentityModel.Metadata
 
 	        WriteWebServiceDescriptorElements(writer, descriptor);
 
-            WriteEndpointReferences(writer, FederationMetadataConstants.Elements.SecurityTokenServiceEndpoint, FederationMetadataConstants.Namespace, descriptor.SecurityTokenServiceEndpoints);
-	        WriteEndpointReferences(writer, FederationMetadataConstants.Elements.PassiveRequestorEndpoint, FederationMetadataConstants.Namespace, descriptor.PassiveRequestorEndpoints);
+	        foreach (var endpoint in descriptor.SecurityTokenServiceEndpoints)
+	        {
+	            writer.WriteStartElement(FederationMetadataConstants.Elements.SecurityTokenServiceEndpoint, FederationMetadataConstants.Namespace);
+	            WriteEndpointReference(writer, endpoint);
+                writer.WriteEndElement();
+	        }
+
+	        foreach (var endpoint in descriptor.PassiveRequestorEndpoints)
+	        {
+	            writer.WriteStartElement(FederationMetadataConstants.Elements.PassiveRequestorEndpoint, FederationMetadataConstants.Namespace);
+	            WriteEndpointReference(writer, endpoint);
+	            writer.WriteEndElement();
+	        }
 
 	        WriteCustomElements(writer, descriptor);
 
@@ -531,15 +526,15 @@ namespace ScottBrady91.IdentityModel.Metadata
             writer.WriteStartElement(Saml2MetadataConstants.Elements.SpssoDescriptor, Saml2MetadataConstants.Namespace);
 
 	        if (descriptor.AuthenticationRequestsSigned)
-	            WriteBooleanAttribute(writer, Saml2MetadataConstants.Attributes.AuthenticationRequestsSigned, null, descriptor.AuthenticationRequestsSigned);
+	            writer.WriteAttributeIfPresent(Saml2MetadataConstants.Attributes.AuthenticationRequestsSigned, null, descriptor.AuthenticationRequestsSigned);
 	        if (descriptor.WantAssertionsSigned)
-	            WriteBooleanAttribute(writer, Saml2MetadataConstants.Attributes.WantAssertionsSigned, null, descriptor.WantAssertionsSigned);
+	            writer.WriteAttributeIfPresent(Saml2MetadataConstants.Attributes.WantAssertionsSigned, null, descriptor.WantAssertionsSigned);
 
 	        WriteSingleSignOnDescriptorAttributes(writer, descriptor);
 	        WriteCustomAttributes(writer, descriptor);
 
             WriteSingleSignOnDescriptorElements(writer, descriptor);
-	        if (descriptor.AssertionConsumerServices.Count == 0)throw new MetadataSerializationException("Missing AssertionConsumerServices");
+	        if (descriptor.AssertionConsumerServices.Count == 0) throw new MetadataSerializationException("Missing AssertionConsumerServices");
 
 	        foreach (var ep in descriptor.AssertionConsumerServices.Values)
 	        {
@@ -601,8 +596,8 @@ namespace ScottBrady91.IdentityModel.Metadata
 	        if (descriptor == null) throw new ArgumentNullException(nameof(descriptor));
 
 	        WriteRoleDescriptorAttributes(writer, descriptor);
-	        WriteStringAttributeIfPresent(writer, Saml2MetadataConstants.Attributes.ServiceDisplayName, null, descriptor.ServiceDisplayName);
-	        WriteStringAttributeIfPresent(writer, Saml2MetadataConstants.Attributes.ServiceDescription, null, descriptor.ServiceDescription);
+	        writer.WriteAttributeIfPresent(Saml2MetadataConstants.Attributes.ServiceDisplayName, null, descriptor.ServiceDisplayName);
+	        writer.WriteAttributeIfPresent(Saml2MetadataConstants.Attributes.ServiceDescription, null, descriptor.ServiceDescription);
 
 	        WriteCustomAttributes(writer, descriptor);
 	    }
@@ -674,17 +669,10 @@ namespace ScottBrady91.IdentityModel.Metadata
 
 	        writer.WriteAttributeString(Saml2Constants.Attributes.Name, attribute.Name);
 
-	        if (null != attribute.NameFormat)
-	        {
-	            writer.WriteAttributeString(Saml2Constants.Attributes.NameFormat, attribute.NameFormat.AbsoluteUri);
-	        }
-
-	        if (null != attribute.FriendlyName)
-	        {
-	            writer.WriteAttributeString(Saml2Constants.Attributes.FriendlyName, attribute.FriendlyName);
-	        }
-
-	        foreach (var value in attribute.Values)
+	        writer.WriteAttributeIfPresent(Saml2Constants.Attributes.NameFormat, null, attribute.NameFormat.AbsoluteUri);
+	        writer.WriteAttributeIfPresent(Saml2Constants.Attributes.FriendlyName, null, attribute.FriendlyName);
+	        
+            foreach (var value in attribute.Values)
 	        {
 	            writer.WriteStartElement(Saml2Constants.Elements.AttributeValue, Saml2Constants.Namespace);
 
@@ -703,9 +691,8 @@ namespace ScottBrady91.IdentityModel.Metadata
 	        writer.WriteEndElement();
         }
 
-        /* Used extensions */
-        // EndpointReference.WriteTo(XmlWriter writer)
-	    protected virtual void WriteEndpointReference(XmlWriter writer, EndpointReference endpointReference)
+        // Replaces EndpointReference.WriteTo(XmlWriter writer) { ... }
+        protected virtual void WriteEndpointReference(XmlWriter writer, EndpointReference endpointReference)
 	    {
 	        writer.WriteStartElement(WSAddressing10Constants.Prefix, WSAddressing10Constants.Elements.EndpointReference, WSAddressing10Constants.NamespaceUri);
 	        WriteCustomAttributes(writer, endpointReference);
@@ -722,16 +709,6 @@ namespace ScottBrady91.IdentityModel.Metadata
 	        WriteCustomElements(writer, endpointReference);
 
 	        writer.WriteEndElement();
-	    }
-
-	    protected virtual void WriteEndpointReferences(XmlWriter writer, string elementName, string elementNamespace, IEnumerable<EndpointReference> endpoints)
-	    {
-	        foreach (var endpointReference in endpoints)
-	        {
-	            writer.WriteStartElement(elementName, elementNamespace);
-	            WriteEndpointReference(writer, endpointReference);
-	            writer.WriteEndElement();
-	        }
 	    }
 
 
@@ -771,25 +748,6 @@ namespace ScottBrady91.IdentityModel.Metadata
 		{
 			if (value != null) writer.WriteAttributeString(attName, attNs, value.ToString());
 		}
-
-		private static void WriteBooleanAttribute(XmlWriter writer, string attName, string attNs, bool? value)
-		{
-			if (value.HasValue)
-			{
-				writer.WriteAttributeString(attName, attNs, XmlConvert.ToString(value.Value));
-			}
-		}
-
-		private static void WriteStringElements(XmlWriter writer, string elementName, string elementNamespace, IEnumerable<string> values)
-		{
-			foreach (var value in values) writer.WriteElementString(elementName, elementNamespace, value);
-		}
-
-		
-		protected virtual void WriteEndpoints(XmlWriter writer,
-			IEnumerable<ProtocolEndpoint> endpoints, string name, string ns) =>
-				WriteCollection(writer, endpoints, (writer_, endpoint) =>
-					WriteProtocolEndpoint(writer_, endpoint, name, ns));
 
 		static void WriteStringElement(XmlWriter writer, string elName, string elNs, string value)
 		{
@@ -1104,8 +1062,8 @@ namespace ScottBrady91.IdentityModel.Metadata
 			WriteStringAttributeIfPresent(writer, "Id", null, keyInfo.Id);
 			WriteCustomAttributes(writer, keyInfo);
 
-			WriteStringElements(writer, "KeyName", DSigNs, keyInfo.KeyNames);
-			WriteCollection(writer, keyInfo.KeyValues, WriteKeyValue);
+		    foreach (var value in keyInfo.KeyNames) writer.WriteElementString("KeyName", DSigNs, value);
+            WriteCollection(writer, keyInfo.KeyValues, WriteKeyValue);
 			WriteCollection(writer, keyInfo.RetrievalMethods, WriteRetrievalMethod);
 			WriteCollection(writer, keyInfo.Data, WriteKeyData);
 			
