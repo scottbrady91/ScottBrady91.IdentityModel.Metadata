@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Xml;
+using System.Xml.Linq;
 using FluentAssertions;
 using ScottBrady91.IdentityModel.Metadata;
 using ScottBrady91.IdentityModel.Tokens;
@@ -34,12 +35,12 @@ namespace ScottBrady91.IdentityModel.Tests
             entity = new EntityDescriptor
             {
                 EntityId = new EntityId("internal"),
-                RoleDescriptors = {idp},
+                RoleDescriptors = { idp },
                 Organization = new Organization
                 {
-                    Names = {new LocalizedName("scott", new CultureInfo("en-GB"))},
-                    DisplayNames = {new LocalizedName("Scott", new CultureInfo("en-GB"))},
-                    Urls = {new LocalizedUri(new Uri("https://www.scottbrady91.com"), new CultureInfo("en-GB"))}
+                    Names = { new LocalizedName("scott", new CultureInfo("en-GB")) },
+                    DisplayNames = { new LocalizedName("Scott", new CultureInfo("en-GB")) },
+                    Urls = { new LocalizedUri(new Uri("https://www.scottbrady91.com"), new CultureInfo("en-GB")) }
                 },
                 Contacts =
                 {
@@ -158,6 +159,95 @@ namespace ScottBrady91.IdentityModel.Tests
                 .Which.Should().HaveInnerText("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified");
         }
 
+        //<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+        //   <SignedInfo>
+        //      <CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" />
+        //      <SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256" />
+        //      <Reference URI="#_8b7b2a03-1ae6-4235-afab-78dcd4d5ae84">
+        //         <Transforms>
+        //            <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+        //            <Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" />
+        //         </Transforms>
+        //         <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256" />
+        //         <DigestValue>gVxNWJ2dzeOPVzBWiz86Tblpge8MiurCZ1GX2g/vnus=</DigestValue>
+        //      </Reference>
+        //   </SignedInfo>
+        //   <SignatureValue>...</Signature>
+        //   <KeyInfo>...</KeyInfo>
+        //</Signature>
+        [Fact]
+        public void WhenIdpHasSigningCredentialAndDefaultSignatureMethods_ExpectMetadataSignedInfoUsingRsaSha256()
+        {
+            const string expectedNamespace = "http://www.w3.org/2000/09/xmldsig#";
+
+            entity.SigningCredentials = new X509SigningCredentials(new X509Certificate2("idsrv3test.pfx", "idsrv3test"));
+            var xml = SerializeMetadata(entity);
+
+
+            xml.Should().HaveElementWithNamespace("Signature", expectedNamespace)
+                .Which.Should().HaveElementWithNamespace("SignedInfo", expectedNamespace);
+
+            var signedInfoXml = xml["Signature"]["SignedInfo"];
+            signedInfoXml.Should().HaveElementWithNamespace("CanonicalizationMethod", expectedNamespace)
+                .Which.Should().HaveAttribute("Algorithm", "http://www.w3.org/2001/10/xml-exc-c14n#");
+            signedInfoXml.Should().HaveElementWithNamespace("SignatureMethod", expectedNamespace)
+                .Which.Should().HaveAttribute("Algorithm", "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256");
+
+            signedInfoXml.Should().HaveElementWithNamespace("Reference", expectedNamespace);
+            var reference = signedInfoXml["Reference"];
+            reference.HasAttribute("URI").Should().BeTrue();
+            var uri = reference.Attributes["URI"];
+            uri.Value.Should().StartWith("#_");
+
+            reference.Should().HaveElementWithNamespace("Transforms", expectedNamespace)
+                .And.HaveElementWithNamespace("DigestValue", expectedNamespace)
+                .And.HaveElementWithNamespace("DigestMethod", expectedNamespace)
+                .Which.Should().HaveAttribute("Algorithm", "http://www.w3.org/2001/04/xmlenc#sha256");
+
+            var xTransforms = XElement.Parse(reference["Transforms"].OuterXml);
+            xTransforms.Descendants()
+                .Any(x => (string)x.Attribute("Algorithm") == "http://www.w3.org/2000/09/xmldsig#enveloped-signature")
+                .Should().BeTrue();
+            xTransforms.Descendants()
+                .Any(x => (string)x.Attribute("Algorithm") == "http://www.w3.org/2001/10/xml-exc-c14n#")
+                .Should().BeTrue();
+        }
+
+        //<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+        //   <SignedInfo>...</SignedInfo>
+        //   <SignatureValue>KHGcYGlFxFGsPRPjJ0MNitY18iPkhAZ4Cp6pLp1BHTYyNwoTnSZuum3Fx+MblwrrxL5bvxREnZtTllaN2xFj2MlZAa2AdLgeFeMfqzeWrbZIUsfrlLHWZ5C5V7/fG/MU5Me5BZDuRHKHtGCosb5U/2rwr+BvsWbeP6Y2EmU5mWcB7iuQvZdBZIFRdCH11b4GUe4wcR/vSyFQqgfNVvJ5v4gTOD3WRvQKJxOm/EQI6x1coN4/neZGt0HR12WT0+cEyOeaGJBfiolj3n2fX1YTZyqQ4lKAxSrvuakMlNYk0IVLIy0q00BUyb1fQo9iSy65wSxXS+Qx3C0YmwTzUti9YQ==</SignatureValue>
+        //   <KeyInfo>
+        //      <X509Data>
+        //         <X509Certificate>MIIDBTCCAfGgAwIBAgIQNQb+T2ncIrNA6cKvUA1GWTAJBgUrDgMCHQUAMBIxEDAOBgNVBAMTB0RldlJvb3QwHhcNMTAwMTIwMjIwMDAwWhcNMjAwMTIwMjIwMDAwWjAVMRMwEQYDVQQDEwppZHNydjN0ZXN0MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqnTksBdxOiOlsmRNd+mMS2M3o1IDpK4uAr0T4/YqO3zYHAGAWTwsq4ms+NWynqY5HaB4EThNxuq2GWC5JKpO1YirOrwS97B5x9LJyHXPsdJcSikEI9BxOkl6WLQ0UzPxHdYTLpR4/O+0ILAlXw8NU4+jB4AP8Sn9YGYJ5w0fLw5YmWioXeWvocz1wHrZdJPxS8XnqHXwMUozVzQj+x6daOv5FmrHU1r9/bbp0a1GLv4BbTtSh4kMyz1hXylho0EvPg5p9YIKStbNAW9eNWvv5R8HN7PPei21AsUqxekK0oW9jnEdHewckToX7x5zULWKwwZIksll0XnVczVgy7fCFwIDAQABo1wwWjATBgNVHSUEDDAKBggrBgEFBQcDATBDBgNVHQEEPDA6gBDSFgDaV+Q2d2191r6A38tBoRQwEjEQMA4GA1UEAxMHRGV2Um9vdIIQLFk7exPNg41NRNaeNu0I9jAJBgUrDgMCHQUAA4IBAQBUnMSZxY5xosMEW6Mz4WEAjNoNv2QvqNmk23RMZGMgr516ROeWS5D3RlTNyU8FkstNCC4maDM3E0Bi4bbzW3AwrpbluqtcyMN3Pivqdxx+zKWKiORJqqLIvN8CT1fVPxxXb/e9GOdaR8eXSmB0PgNUhM4IjgNkwBbvWC9F/lzvwjlQgciR7d4GfXPYsE1vf8tmdQaY8/PtdAkExmbrb9MihdggSoGXlELrPA91Yce+fiRcKY3rQlNWVd4DOoJ/cPXsXwry8pWjNCo5JD8Q+RQ5yZEy7YPoifwemLhTdsBz3hlZr28oCGJ3kbnpW0xGvQb3VHSTVVbeei0CfXoW6iz1</X509Certificate>
+        //      </X509Data>
+        //   </KeyInfo>
+        //</Signature>
+        [Fact]
+        public void WhenIdpHasSigningCredentialAndDefaultSignatureMethods_ExpectMetadataSignatureValueAndKeyInfo()
+        {
+            const string expectedNamespace = "http://www.w3.org/2000/09/xmldsig#";
+
+            entity.SigningCredentials = new X509SigningCredentials(new X509Certificate2("idsrv3test.pfx", "idsrv3test"));
+            var xml = SerializeMetadata(entity);
+
+
+            xml.Should().HaveElementWithNamespace("Signature", expectedNamespace)
+                .Which.Should().HaveElementWithNamespace("SignatureValue", expectedNamespace)
+                .And.HaveElementWithNamespace("KeyInfo", expectedNamespace);
+
+            xml["Signature"]["SignatureValue"].InnerText.Should().NotBeNullOrEmpty();
+
+            var keyInfo = xml["Signature"]["KeyInfo"];
+            keyInfo.Should().HaveElementWithNamespace("X509Data", expectedNamespace)
+                .Which.Should().HaveElementWithNamespace("X509Certificate", expectedNamespace);
+            var x509Certificate = keyInfo["X509Data"]["X509Certificate"];
+            x509Certificate.InnerText.Should().NotBeNullOrEmpty();
+
+            var loadedCert = new X509Certificate2(Convert.FromBase64String(x509Certificate.InnerText));
+            loadedCert.PublicKey.Should().NotBeNull();
+            loadedCert.HasPrivateKey.Should().BeFalse();
+        }
+
         [Fact]
         public void WhenIdpHasSigningKey_ExpectPublicKeyInMetadata()
         {
@@ -171,8 +261,8 @@ namespace ScottBrady91.IdentityModel.Tests
             xml.Should().HaveElementWithNamespace("IDPSSODescriptor", Xmlns);
             var idpElement = xml["IDPSSODescriptor"];
 
-            idpElement.Should().HaveElementWithNamespace("NameIDFormat", Xmlns)
-                .Which.Should().HaveInnerText("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified");
+            idpElement.Should().HaveElementWithNamespace("KeyDescriptor", Xmlns)
+                .Which.Should().HaveElementWithNamespace("KeyInfo", "http://www.w3.org/2000/09/xmldsig#");
         }
 
         private XmlElement SerializeMetadata(EntityDescriptor entityDescriptor)
