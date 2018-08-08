@@ -7,8 +7,9 @@ using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using FluentAssertions;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.IdentityModel.Xml;
 using ScottBrady91.IdentityModel.Metadata;
-using ScottBrady91.IdentityModel.Tokens;
 using Xunit;
 
 namespace ScottBrady91.IdentityModel.Tests
@@ -180,7 +181,7 @@ namespace ScottBrady91.IdentityModel.Tests
         {
             const string expectedNamespace = "http://www.w3.org/2000/09/xmldsig#";
 
-            entity.SigningCredentials = new X509SigningCredentials(new X509Certificate2("idsrv3test.pfx", "idsrv3test"));
+            entity.SigningCredentials = new Tokens.X509SigningCredentials(new X509Certificate2("idsrv3test.pfx", "idsrv3test"));
             var xml = SerializeMetadata(entity);
 
 
@@ -227,10 +228,9 @@ namespace ScottBrady91.IdentityModel.Tests
         {
             const string expectedNamespace = "http://www.w3.org/2000/09/xmldsig#";
 
-            entity.SigningCredentials = new X509SigningCredentials(new X509Certificate2("idsrv3test.pfx", "idsrv3test"));
+            entity.SigningCredentials = new Tokens.X509SigningCredentials(new X509Certificate2("idsrv3test.pfx", "idsrv3test"));
             var xml = SerializeMetadata(entity);
-
-
+            
             xml.Should().HaveElementWithNamespace("Signature", expectedNamespace)
                 .Which.Should().HaveElementWithNamespace("SignatureValue", expectedNamespace)
                 .And.HaveElementWithNamespace("KeyInfo", expectedNamespace);
@@ -251,9 +251,7 @@ namespace ScottBrady91.IdentityModel.Tests
         [Fact]
         public void WhenIdpHasSigningKey_ExpectPublicKeyInMetadata()
         {
-            var clause = new X509SecurityToken(new X509Certificate2("idsrv3test.pfx", "idsrv3test"))
-                .CreateKeyIdentifierClause<X509RawDataKeyIdentifierClause>();
-            var key = new KeyDescriptor(new SecurityKeyIdentifier(clause)) { Use = KeyType.Signing };
+            var key = new KeyDescriptor(new KeyInfo(new X509SecurityKey(new X509Certificate2("idsrv3test.pfx", "idsrv3test")))) { Use = KeyType.Signing };
             idp.Keys.Add(key);
 
             var xml = SerializeMetadata(entity);

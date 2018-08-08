@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.IdentityModel.Xml;
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
@@ -10,7 +11,7 @@ namespace ScottBrady91.IdentityModel.Metadata
 		public string MimeType { get; set; }
 		public Uri Encoding { get; set; }
 		public XEncEncryptionMethod EncryptionMethod { get; set; }
-		public DSigKeyInfo KeyInfo { get; set; }
+		public KeyInfo KeyInfo { get; set; }
 		public CipherData CipherData { get; set; }
 		public EncryptionProperties EncryptionProperties { get; set; }
 	}
