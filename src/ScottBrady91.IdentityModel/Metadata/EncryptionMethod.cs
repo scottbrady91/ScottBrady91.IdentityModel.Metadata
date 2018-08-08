@@ -4,10 +4,11 @@ namespace ScottBrady91.IdentityModel.Metadata
 {
 	public class EncryptionMethod
 	{
-	    public Uri Algorithm { get; set; }
+	    public EncryptionMethod(Uri algorithm)
+	    {
+	        Algorithm = algorithm ?? throw new ArgumentNullException(nameof(algorithm));
+	    }
 
-        // TODO: EncryptionMethod extensions
-        public int KeySize { get; set; }
-		public byte[] OAEPparams { get; set; }
+	    public Uri Algorithm { get; set; }
 	}
 }
