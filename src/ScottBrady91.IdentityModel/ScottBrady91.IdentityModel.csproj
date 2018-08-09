@@ -3,7 +3,11 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <VersionPrefix>1.0.0</VersionPrefix>
-    <VersionSuffix>preview0.1</VersionSuffix>
+    <VersionSuffix>preview1</VersionSuffix>
+    <Authors>Scott Brady;Rock Solid Knowldge Ltd</Authors>
+    <Description>Basic port of the old System.IdentityModel.Metadata libraries. Write methods only.</Description>
+    <PackageProjectUrl>https://github.com/scottbrady91/ScottBrady91.IdentityModel.Metadata</PackageProjectUrl>
+    <PackageTags>IdentityServer SAML2P SAML Identity Authentication</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
