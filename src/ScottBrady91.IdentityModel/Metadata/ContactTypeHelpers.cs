@@ -2,7 +2,6 @@
 
 namespace ScottBrady91.IdentityModel.Metadata
 {
-    // TODO: ContactTypeHelpers
     public static class ContactTypeHelpers
     {
 		public static ContactType Parse(string contactType)
